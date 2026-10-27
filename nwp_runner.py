@@ -26,6 +26,22 @@ IMD_MODELS = os.environ.get("IMD_MODELS", "off").strip().lower()      # "off" (d
 if IMD_MODELS != "on":
     os.environ["IMD_PWD"] = ""     # IMD GFS / NCUM-G / NCUM-R skipped: IMD's server is too slow from GitHub
 RUN_ID = (os.environ.get("RUN_ID") or "").strip() or latest_run()
+
+# Several runs in one go: RUN_ID = "backfill" (every 00/12 UTC run of the last KEEP_DAYS days)
+# or a comma-separated list, e.g. "2026102500,2026102512". Each run is done by a child process.
+if RUN_ID.lower() in ("backfill", "all") or "," in RUN_ID:
+    if "," in RUN_ID:
+        ids = [x.strip() for x in RUN_ID.split(",") if x.strip()]
+    else:
+        last = dt.datetime.strptime(latest_run(), "%Y%m%d%H"); t = last - dt.timedelta(days=KEEP_DAYS) + dt.timedelta(hours=12)
+        t = t.replace(hour=0 if t.hour < 12 else 12, minute=0, second=0, microsecond=0)
+        ids = []
+        while t <= last: ids.append(t.strftime("%Y%m%d%H")); t += dt.timedelta(hours=12)
+    print("Processing runs:", ", ".join(ids), flush=True)
+    for rid in ids:
+        env = dict(os.environ, RUN_ID=rid)
+        subprocess.run([sys.executable, "-u", os.path.abspath(__file__)], env=env)
+    sys.exit(0)
 IC_T = dt.datetime.strptime(RUN_ID, "%Y%m%d%H")
 LABEL = f"{IC_T:%H} UTC {IC_T.day} {IC_T:%b %Y}"
 os.makedirs(SITE, exist_ok=True); os.makedirs(WORK, exist_ok=True)

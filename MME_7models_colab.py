@@ -156,7 +156,8 @@ def _listing(url):
     except Exception: return ""
 gfs_ok = lambda t: f"gfs.t{t:%H}z.pgrb2.0p25.f120" in _listing(f"https://nomads.ncep.noaa.gov/pub/data/nccf/com/gfs/prod/gfs.{t:%Y%m%d}/{t:%H}/atmos/")
 cmc_ok = lambda t: t.hour in (0, 12) and 'href="120/"' in _listing(f"https://dd.weather.gc.ca/{t:%Y%m%d}/WXO-DD/model_gdps/15km/{t:%H}/")
-ec_ok  = lambda t: t.hour in (0, 12) and "-tf.bufr" in _listing(f"https://data.ecmwf.int/forecasts/{t:%Y%m%d}/{t:%H}z/ifs/0p25/oper/")
+ec_ok  = lambda t: (t.hour in (0, 12) and "-tf.bufr" in _listing(f"https://data.ecmwf.int/forecasts/{t:%Y%m%d}/{t:%H}z/ifs/0p25/oper/")
+                   and "-tf.bufr" in _listing(f"https://data.ecmwf.int/forecasts/{t:%Y%m%d}/{t:%H}z/ifs/0p25/enfo/"))   # HRES and ENS both out
 def run_at(src, t, first_km=None):
     lat_, lon_ = ref_for(t)
     s = setv(setv(src, "DATE", f"{t:%Y%m%d}"), "RUN", f"{t:%H}")
