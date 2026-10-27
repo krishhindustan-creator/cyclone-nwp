@@ -1,0 +1,55 @@
+name: Cyclone NWP (ECMWF ENS + IMD MME 7)
+
+on:
+  schedule:
+    # 00 UTC run: 05 UTC (GFS, CMC, IMD) · 08 UTC (+ ECMWF HRES/ENS) · 09 UTC (late models)
+    - cron: "0 5 * * *"      # 10:30 IST
+    - cron: "0 8 * * *"      # 13:30 IST
+    - cron: "0 9 * * *"      # 14:30 IST
+    # 12 UTC run: 17 UTC · 20 UTC (+ ECMWF) · 21 UTC (late models)
+    - cron: "0 17 * * *"     # 22:30 IST
+    - cron: "0 20 * * *"     # 01:30 IST
+    - cron: "0 21 * * *"     # 02:30 IST
+  workflow_dispatch:
+    inputs:
+      run_id: {description: "Run YYYYMMDDHH (empty = latest)", required: false, default: ""}
+      force:  {description: "Redo even if already on the site (1 = yes)", required: false, default: "0"}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nwp
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 170
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: pip install eccodes cartopy paramiko h5py scipy shapely pandas matplotlib
+      - name: Current web site (gh-pages branch)
+        run: |
+          git clone --depth 1 -b gh-pages "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" site \
+            || mkdir -p site
+          rm -rf site/.git
+      - name: Run ECMWF ENS and MME 7
+        env:
+          RUN_ID:  ${{ github.event.inputs.run_id }}
+          FORCE:   ${{ github.event.inputs.force }}
+          IMD_PWD: ${{ secrets.IMD_PWD }}
+          KEEP_DAYS: "3"
+        run: python nwp_runner.py
+      - name: Publish (gh-pages, no history so old runs do not pile up)
+        run: |
+          cd site
+          git init -q -b gh-pages
+          git config user.name  "nwp-bot"
+          git config user.email "nwp-bot@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Update $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -f -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" gh-pages
