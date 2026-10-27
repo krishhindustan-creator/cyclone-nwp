@@ -109,7 +109,8 @@ else:
     Z = os.path.join(WORK, f"ECMWF_ENS_{RUN_ID}", f"ECMWF_ENS_package_{RUN_ID}.zip")
     lines = [l.strip() for l in out.splitlines() if re.match(r"\s+(Ensemble-mean|HRES|Members|Median|Most likely)", l)]
     note = ("<br>".join(re.sub(r"\s{2,}", ": ", l, count=1) for l in lines)) if lines else ""
-    publish("ens", [("Landfall summary", f"{P}/ECMWF_ENS_landfall_summary.png"), ("Spaghetti tracks", f"{P}/E1_ENS_spaghetti.png"),
+    publish("ens", [("Comparison with previous 2 runs", f"{P}/ECMWF_ENS_comparison_last3runs.png"),
+                    ("Landfall summary", f"{P}/ECMWF_ENS_landfall_summary.png"), ("Spaghetti tracks", f"{P}/E1_ENS_spaghetti.png"),
                     ("Strike probability", f"{P}/E2_ENS_strike_probability.png"), ("MSW plume", f"{P}/E3_ENS_MSW_plume.png"),
                     ("MSLP plume", f"{P}/E4_ENS_MSLP_plume.png")],
             [("Package (zip)", Z), ("Ensemble-mean track", f"{P}/ECMWF_ENSMEAN_track.txt"), ("HRES track", f"{P}/ECMWF_HRES_track.txt"),
@@ -158,6 +159,46 @@ for kind in man:
         except Exception: pass
 ist = dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)
 man["updated"] = f"{ist:%d %b %Y %H:%M} IST"
+
+def ens_compare_png(runs, out):
+    """WhatsApp-size table comparing the kept ECMWF ENS runs (oldest -> newest), built from their notes."""
+    import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt, textwrap
+    cols = list(reversed(runs))[-6:]
+    S = []
+    for r in cols:
+        o = {}
+        for l in (r.get("note") or "").split("<br>"):
+            if ": " in l: k, v = l.split(": ", 1); o[k.strip()] = v.strip()
+        S.append(o)
+    keys = []
+    for o in S:
+        for k in o:
+            if k not in keys: keys.append(k)
+    if len(cols) < 2 or not keys: return False
+    wrap = lambda v: "\n".join(textwrap.wrap(v, 18)) if v else "–"
+    rows = [[k] + [wrap(o.get(k, "")) for o in S] for k in keys]
+    hdr = [""] + [r["label"].rsplit(" ", 1)[0].replace(" UTC ", " UTC\n") for r in cols]
+    w = 2.6 + 2.0 * len(cols)
+    fig = plt.figure(figsize=(w, 1.05 * len(rows) + 2.2), dpi=150)
+    fig.text(0.5, 0.97, "ECMWF Ensemble — run comparison", ha="center", va="top", fontsize=16, fontweight="bold", color="#1f3b63")
+    fig.text(0.5, 0.925, f"Last {len(cols)} runs (oldest → newest)  ·  {man['updated']}", ha="center", va="top", fontsize=10)
+    ax = fig.add_axes([0.02, 0.06, 0.96, 0.82]); ax.axis("off")
+    tb = ax.table(cellText=rows, colLabels=hdr, cellLoc="center", bbox=[0, 0, 1, 1],
+                  colWidths=[2.6 / w] + [2.0 / w] * len(cols))
+    tb.auto_set_font_size(False); tb.set_fontsize(8.6)
+    for (i, j), c in tb.get_celld().items():
+        c.set_edgecolor("#bbb")
+        if i == 0: c.set_facecolor("#1f3b63" if j else "white"); c.get_text().set_color("white"); c.get_text().set_fontweight("bold")
+        elif j == 0: c.set_facecolor("#eef2f7"); c.get_text().set_fontweight("bold")
+        elif j == len(cols): c.set_facecolor("#fff6cc"); c.get_text().set_fontweight("bold")
+    fig.text(0.5, 0.02, "Source: ECMWF open data (CC BY 4.0); own analysis", ha="center", fontsize=8, style="italic", color="#555")
+    plt.savefig(out, dpi=150, facecolor="white", bbox_inches="tight", pad_inches=0.2); plt.close()
+    return True
+try:
+    if ens_compare_png(man["ens"], os.path.join(SITE, "ens", "ENS_comparison.png")):
+        man["ens_compare"] = "ens/ENS_comparison.png"; print("ENS comparison table written")
+except Exception as e:
+    print("ENS comparison table failed:", e)
 json.dump(man, open(os.path.join(SITE, "manifest.json"), "w"), separators=(",", ":"))
 shutil.copy(os.path.join(HERE, "index.html"), os.path.join(SITE, "index.html"))
 open(os.path.join(SITE, ".nojekyll"), "w").close()
