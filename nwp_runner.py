@@ -22,11 +22,14 @@ def latest_run():
     if now.hour >= 16:     return now.strftime("%Y%m%d") + "12"
     return (now - dt.timedelta(days=1)).strftime("%Y%m%d") + "12"
 
+IMD_MODELS = os.environ.get("IMD_MODELS", "off").strip().lower()      # "off" (default on GitHub) or "on"
+if IMD_MODELS != "on":
+    os.environ["IMD_PWD"] = ""     # IMD GFS / NCUM-G / NCUM-R skipped: IMD's server is too slow from GitHub
 RUN_ID = (os.environ.get("RUN_ID") or "").strip() or latest_run()
 IC_T = dt.datetime.strptime(RUN_ID, "%Y%m%d%H")
 LABEL = f"{IC_T:%H} UTC {IC_T.day} {IC_T:%b %Y}"
 os.makedirs(SITE, exist_ok=True); os.makedirs(WORK, exist_ok=True)
-print(f"Run {RUN_ID} ({LABEL}); site {SITE}; keep {KEEP_DAYS:g} days")
+print(f"Run {RUN_ID} ({LABEL}); site {SITE}; keep {KEEP_DAYS:g} days; IMD models {'on' if IMD_MODELS == 'on' else 'off'}")
 
 def headless(script, out):
     """Colab script -> plain Python: drop '!pip' lines, set DATE/RUN, password from IMD_PWD."""
@@ -41,16 +44,20 @@ def headless(script, out):
 def run(script, tag, minutes):
     path = os.path.join(WORK, f"{tag}_headless.py"); headless(script, path)
     print(f"\n===== {script} =====", flush=True)
-    t0 = time.time()
+    t0 = time.time(); lines = []
+    # stream the output live (so the GitHub log shows progress) and keep a copy for the notes
+    p = subprocess.Popen([sys.executable, "-u", path], cwd=WORK, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                         text=True, bufsize=1)
     try:
-        p = subprocess.run([sys.executable, path], cwd=WORK, capture_output=True, text=True, timeout=minutes * 60)
-        out = p.stdout + p.stderr
-    except subprocess.TimeoutExpired as e:
-        out = (e.stdout or b"").decode("utf-8", "replace") if isinstance(e.stdout, bytes) else (e.stdout or "")
-        out += f"\n[timed out after {minutes} min]"
-    print(out[-6000:], flush=True)
-    print(f"({(time.time() - t0) / 60:.1f} min)")
-    return out
+        for line in p.stdout:
+            print(line, end="", flush=True); lines.append(line)
+            if time.time() - t0 > minutes * 60:
+                p.kill(); lines.append(f"\n[timed out after {minutes} min]\n"); print(lines[-1]); break
+        p.wait(timeout=60)
+    except Exception as e:
+        p.kill(); lines.append(f"\n[stopped: {e}]\n")
+    print(f"({(time.time() - t0) / 60:.1f} min)", flush=True)
+    return "".join(lines)
 
 def done(kind):
     """ENS: done once published. MME: done only when it was complete (every model's own run, none missing);
@@ -96,7 +103,7 @@ else:
 if done("mme"):
     print("MME already complete on the site for this run (set FORCE=1 to redo)")
 else:
-    out = run("MME_7models_colab.py", "mme", 110)
+    out = run("MME_7models_colab.py", "mme", 110 if IMD_MODELS == "on" else 40)
     P = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}")
     Z = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}.zip")
     F = os.path.join(P, "figures")
@@ -111,6 +118,8 @@ else:
         except Exception: note.append("MME landfall " + lf)
     if older: note.append("Older runs used: " + older)
     skipped = [l.strip() for l in out.splitlines() if re.search(r"\s(skipped|FAILED|stopped)", l) and l.startswith("  ")]
+    skipped = [x for x in skipped if "skipped by user" not in x]          # IMD switched off on purpose
+    if IMD_MODELS != "on": note.append("IMD GFS, NCUM-G and NCUM-R are not run on GitHub (IMD server too slow from there) — use the Colab MME script for them")
     if skipped: note.append("Not included: " + "; ".join(s.split("  ")[0] for s in skipped[:6]))
     publish("mme", [("Combined: track, MSW, MSLP", f"{F}/0_combined_track_MSW_MSLP.png"), ("Model tracks", f"{F}/1_model_tracks.png"),
                     ("MSW, all models", f"{F}/2_model_MSW.png"), ("MSLP, all models", f"{F}/3_model_MSLP.png"),
