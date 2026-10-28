@@ -22,7 +22,7 @@ def latest_run():
     if now.hour >= 16:     return now.strftime("%Y%m%d") + "12"
     return (now - dt.timedelta(days=1)).strftime("%Y%m%d") + "12"
 
-IMD_MODELS = os.environ.get("IMD_MODELS", "off").strip().lower()      # "off" (default on GitHub) or "on"
+IMD_MODELS = os.environ.get("IMD_MODELS", "on").strip().lower()       # "on" (IMD files are small now) or "off"
 if IMD_MODELS != "on":
     os.environ["IMD_PWD"] = ""     # IMD GFS / NCUM-G / NCUM-R skipped: IMD's server is too slow from GitHub
 RUN_ID = (os.environ.get("RUN_ID") or "").strip() or latest_run()
@@ -53,6 +53,8 @@ def headless(script, out):
     s = "\n".join(l for l in s.splitlines() if not l.lstrip().startswith("!"))
     s = re.sub(r'^DATE\s*=.*$', f'DATE  = "{RUN_ID[:8]}"', s, count=1, flags=re.M)
     s = re.sub(r'^RUN\s*=.*$', f'RUN   = "{RUN_ID[8:]}"', s, count=1, flags=re.M)
+    # on GitHub the IMD step may take at most IMD_MAX_MINUTES (default 10), then the MME goes on without it
+    s = re.sub(r'^IMD_MAX_MINUTES\s*=.*$', f'IMD_MAX_MINUTES = {float(os.environ.get("IMD_MAX_MINUTES", "10")):g}', s, count=1, flags=re.M)
     s = ("import getpass as _gp, os as _os\n_gp.getpass = lambda prompt='': _os.environ.get('IMD_PWD', '')\n"
          "import matplotlib; matplotlib.use('Agg')\n") + s
     open(out, "w", encoding="utf-8").write(s)
@@ -120,7 +122,7 @@ else:
 if done("mme"):
     print("MME already complete on the site for this run (set FORCE=1 to redo)")
 else:
-    out = run("MME_7models_colab.py", "mme", 110 if IMD_MODELS == "on" else 40)
+    out = run("MME_7models_colab.py", "mme", 60 if IMD_MODELS == "on" else 40)
     P = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}")
     Z = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}.zip")
     F = os.path.join(P, "figures")
@@ -145,9 +147,25 @@ else:
             [("Package (zip)", Z), ("MMM_track.txt (IMD format)", f"{P}/MMM_track.txt")], "<br>".join(note),
             complete=not older and not [x for x in skipped if "not numbered" not in x])
 
+# ---------------- 2b. A-Deck (from the MME package) ----------------
+A = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}", "adeck")
+if os.path.isdir(A) and not done("adeck"):
+    names = {"NGX_track.txt": "NAVGEM (US Navy)", "UKM_track.txt": "UKMO", "CMC_ADECK_track.txt": "CMC (a-deck)",
+             "GEFS_MEAN_track.txt": "GEFS ensemble mean", "CENS_MEAN_track.txt": "Canadian ensemble mean",
+             "NAVENS_MEAN_track.txt": "Navy ensemble mean"}
+    present = [v for k, v in names.items() if os.path.exists(os.path.join(A, k))]
+    storm_ = grab(out, r"a-deck: storm (io\d+)").upper() if "out" in globals() else ""
+    note = ["JTWC/UCAR a-deck model tracks" + (f" — storm {storm_}" if storm_ else "")]
+    if present: note.append("Models: " + ", ".join(present))
+    note.append("NAVGEM is also an MME member; the other a-deck models are shown here for comparison only")
+    publish("adeck", [("A-Deck model tracks", os.path.join(A, "ADECK_quicklook.png"))],
+            [(f"{v} track", os.path.join(A, k)) for k, v in names.items()], "<br>".join(note), complete=False)
+elif not os.path.isdir(A):
+    print("adeck: no a-deck this run (system not numbered by JTWC, or a-deck not available)")
+
 # ---------------- 3. keep KEEP_DAYS days, write manifest ----------------
 cut = dt.datetime.utcnow() - dt.timedelta(days=KEEP_DAYS)
-man = {"ens": [], "mme": []}
+man = {"ens": [], "mme": [], "adeck": []}
 for kind in man:
     for d in sorted(glob.glob(os.path.join(SITE, kind, "*")), reverse=True):
         ic = os.path.basename(d)
@@ -202,4 +220,4 @@ except Exception as e:
 json.dump(man, open(os.path.join(SITE, "manifest.json"), "w"), separators=(",", ":"))
 shutil.copy(os.path.join(HERE, "index.html"), os.path.join(SITE, "index.html"))
 open(os.path.join(SITE, ".nojekyll"), "w").close()
-print(f"\nmanifest: {len(man['ens'])} ENS runs, {len(man['mme'])} MME runs")
+print(f"\nmanifest: {len(man['ens'])} ENS runs, {len(man['mme'])} MME runs, {len(man['adeck'])} A-Deck runs")

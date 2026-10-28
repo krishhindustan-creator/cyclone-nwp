@@ -29,7 +29,7 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
 #nv .cap{color:#fff;text-align:center;margin:0 0 8px;font-size:13px}
 .xlink{font-weight:700;font-size:16px;color:var(--acc);text-decoration:none;border:2px solid var(--acc);border-radius:6px;padding:5px 12px}.xlink:hover{background:var(--acc);color:var(--accfg)}
 </style></head><body>
-<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME 7 Models</button></nav>
+<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button></nav>
 <a class="xlink" href="https://krishhindustan-creator.github.io/rsrw-tphigrams/">⬅ T-phi grams</a></header>
 <main id="nwp"><div class="nwpbar"><b id="nwptitle"></b><select id="nwprun"></select><span class="mut" id="nwpinfo"></span></div>
 <div id="nwpnote"></div><div id="nwpcmp"></div><div class="nwpgrid" id="nwpgrid"></div><div class="files" id="nwpfiles"></div></main>
@@ -37,14 +37,14 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
 <script>window.NWP_BASE='./';
 (function(){
   const BASE=window.NWP_BASE||'__NWP_BASE__', g=id=>document.getElementById(id);
-  const NAMES={ens:'ECMWF Ensemble',mme:'IMD MME 7 Models'};
+  const NAMES={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)'};
   let MAN=null, kind=null, items=[], cur=0;
   function load(){ if(MAN) return Promise.resolve(MAN);
     return fetch(BASE+'manifest.json?t='+Date.now()).then(r=>r.json()).then(m=>MAN=m)
-      .catch(()=>{MAN={ens:[],mme:[]};return MAN}); }
+      .catch(()=>{MAN={ens:[],mme:[],adeck:[]};return MAN}); }
   function draw(){
     const runs=(MAN&&MAN[kind])||[]; g('nwptitle').textContent=NAMES[kind];
-    if(!runs.length){g('nwprun').innerHTML='';g('nwpgrid').innerHTML='<div class="empty">No runs yet — the first one appears after the next scheduled update.</div>';
+    if(!runs.length){g('nwprun').innerHTML='';g('nwpgrid').innerHTML='<div class="empty">'+(kind==='adeck'?'No a-deck yet — it appears once JTWC has numbered the system.':'No runs yet — the first one appears after the next scheduled update.')+'</div>';
       g('nwpfiles').innerHTML='';g('nwpnote').innerHTML='';g('nwpinfo').textContent='';return}
     const sel=g('nwprun'), keep=sel.value&&runs.some(r=>r.ic===sel.value)?sel.value:runs[0].ic;
     sel.innerHTML=runs.map(r=>`<option value="${r.ic}">${r.label}</option>`).join(''); sel.value=keep;
@@ -73,9 +73,9 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
   g('nwprun').onchange=draw;
   window.NWP_SHOW=function(k){kind=k;load().then(draw)};
 })();
-(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME 7 Models'};
- function tab(t){if(!T[t])t='ens';['ens','mme'].forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
+(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)'};
+ function tab(t){if(!T[t])t='ens';['ens','mme','adeck'].forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
   window.NWP_SHOW(t);if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}
- ['ens','mme'].forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));
+ ['ens','mme','adeck'].forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));
  tab(location.hash.slice(1)||'ens')})();
 </script></body></html>
