@@ -1,0 +1,13 @@
+name: CLIMS reachability test
+on: workflow_dispatch
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Can GitHub reach CLIMS?
+        run: |
+          for u in https://clims.imd.gov.in/ https://clims.imd.gov.in/login; do
+            code=$(curl -s -m 40 -o page.html -w "%{http_code}" "$u" || echo "no-connection")
+            echo "$u -> HTTP $code, $(wc -c < page.html 2>/dev/null || echo 0) bytes"
+            head -c 300 page.html 2>/dev/null; echo; echo
+          done
