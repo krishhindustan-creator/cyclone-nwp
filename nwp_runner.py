@@ -12,7 +12,7 @@ import datetime as dt, glob, json, os, re, shutil, subprocess, sys, time
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.abspath(os.environ.get("SITE", os.path.join(HERE, "site")))
 WORK = os.path.abspath(os.path.join(HERE, "work"))
-KEEP_DAYS = float(os.environ.get("KEEP_DAYS", "3"))
+KEEP_DAYS = float(os.environ.get("KEEP_DAYS", "15"))
 FORCE = os.environ.get("FORCE", "") not in ("", "0", "false", "False")
 
 def latest_run():
@@ -177,6 +177,7 @@ for kind in man:
         except Exception: pass
 ist = dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)
 man["updated"] = f"{ist:%d %b %Y %H:%M} IST"
+man["keep_days"] = KEEP_DAYS
 
 def ens_compare_png(runs, out):
     """WhatsApp-size table comparing the kept ECMWF ENS runs (oldest -> newest), built from their notes."""

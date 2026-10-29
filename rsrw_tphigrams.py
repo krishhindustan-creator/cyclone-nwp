@@ -796,7 +796,7 @@ render();
     const sel=g('nwprun'), keep=sel.value&&runs.some(r=>r.ic===sel.value)?sel.value:runs[0].ic;
     sel.innerHTML=runs.map(r=>`<option value="${r.ic}">${r.label}</option>`).join(''); sel.value=keep;
     const run=runs.find(r=>r.ic===keep); items=run.items.map(o=>({...o,f:BASE+o.f}));
-    g('nwpinfo').textContent=`${runs.length} run${runs.length===1?'':'s'} kept (3 days)`+(MAN.updated?` · updated ${MAN.updated}`:'');
+    g('nwpinfo').textContent=`${runs.length} run${runs.length===1?'':'s'} kept (${MAN.keep_days||3} days)`+(MAN.updated?` · updated ${MAN.updated}`:'');
     g('nwpnote').innerHTML=run.note?`<div class="note">${run.note}</div>`:'';
     g('nwpcmp').innerHTML=kind==='ens'?cmp(runs,keep):'';
     g('nwpgrid').innerHTML=items.map((o,i)=>`<button class="c" data-n="${i}"><img loading="lazy" src="${o.f}" alt="${o.t}"><b>${o.t}</b></button>`).join('');
@@ -804,7 +804,7 @@ render();
   }
   function stats(note){const o={};(note||'').split('<br>').forEach(l=>{const i=l.indexOf(': ');if(i>0)o[l.slice(0,i).trim()]=l.slice(i+2).trim()});return o}
   function cmp(runs,sel){ if(runs.length<2) return '';
-    const cols=runs.slice().reverse(), S=cols.map(r=>stats(r.note)), keys=[];
+    const cols=runs.slice(0,6).reverse(), S=cols.map(r=>stats(r.note)), keys=[];   // last 6 runs only
     S.forEach(o=>Object.keys(o).forEach(k=>{if(!keys.includes(k))keys.push(k)}));
     if(!keys.length) return '';
     let h='<div class="cmpt">Comparison of the last '+cols.length+' runs (oldest → newest)</div><div class="cmpwrap"><table class="cmp"><tr><th></th>'+
