@@ -44,7 +44,7 @@ jobs:
           IMD_PWD: ${{ secrets.IMD_PWD }}
           IMD_MODELS: "on"       # IMD GFS, NCUM-G, NCUM-R from IMD's dr_krishna folder ("off" to skip them)
           IMD_MAX_MINUTES: "10"  # if IMD's server is slow, give up on the IMD models after 10 min
-          KEEP_DAYS: "3"
+          KEEP_DAYS: "15"
         run: python nwp_runner.py
       - name: Publish (gh-pages, no history so old runs do not pile up)
         run: |
