@@ -1,0 +1,36 @@
+name: T-phi grams (IMD RS/RW)
+
+on:
+  schedule:
+    - cron: "0 2 * * *"      # 07:30 IST
+    - cron: "30 3 * * *"     # 09:00 IST (late-uploaded stations)
+    - cron: "0 14 * * *"     # 19:30 IST
+    - cron: "30 15 * * *"    # 21:00 IST (late-uploaded stations)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tphi
+  cancel-in-progress: false
+
+jobs:
+  tphi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.11"}
+      - name: Install
+        run: pip install numpy matplotlib requests pillow
+      - name: Download, plot and publish the T-phi grams
+        env:
+          RSRW_CONFIG: ${{ secrets.RSRW_CONFIG }}   # the whole content of rsrw_config.json (CLIMS login + GitHub token)
+          RSRW_KEEP_REMOTE: "1"                     # keep the charts already on the web page (this computer starts empty)
+          TZ: Asia/Kolkata                          # times on the page in IST
+        run: |
+          mkdir -p tphi && cp rsrw_tphigrams.py tphi/ && cd tphi
+          printf '%s' "$RSRW_CONFIG" > rsrw_config.json
+          python rsrw_tphigrams.py --auto
