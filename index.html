@@ -1,0 +1,81 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Cyclone NWP — ECMWF ENS and IMD MME</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--fg:#14202b;--mut:#5a6b7a;--line:#d5dde5;--acc:#1f5fa8;--accfg:#fff;--chip:#e8eef4}
+@media (prefers-color-scheme:dark){:root{--bg:#0f151b;--card:#18212a;--fg:#e4ebf1;--mut:#93a4b3;--line:#2b3946;--acc:#7fb1ea;--accfg:#0f151b;--chip:#1f2b36}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px "Segoe UI",system-ui,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center}
+h1{font-size:18px;margin:0 12px 0 0}select,button{font:inherit;color:var(--fg);background:var(--chip);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(--accfg);border-color:var(--acc)}
+.mut{color:var(--mut);font-size:12px}main{padding:16px;max-width:1500px;margin:0 auto}a.back{color:var(--acc);text-decoration:none}
+.xlink{font-weight:700;font-size:16px;color:var(--acc);text-decoration:none;border:2px solid var(--acc);border-radius:6px;padding:5px 12px}.xlink:hover{background:var(--acc);color:var(--accfg)}
+.c{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;cursor:pointer;text-align:left;color:inherit}
+.c img{width:100%;border-radius:4px;background:#fff;display:block}.c b{display:block;margin-top:6px}
+.empty{padding:40px;text-align:center;color:var(--mut)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}.tabs button{font-weight:600}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}.tabs button{font-weight:600}
+.nwpbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:0 0 14px}
+.nwpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.nwpgrid .c img{height:220px;object-fit:contain;object-position:center}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}.files a{color:var(--acc);text-decoration:none;border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--card)}
+.note{margin:0 0 12px;padding:8px 10px;border-left:3px solid var(--acc);background:var(--card);border-radius:4px;font-size:13px}
+.cmpwrap{overflow-x:auto;margin:0 0 16px;border:1px solid var(--line);border-radius:8px;background:var(--card)}
+.cmp{border-collapse:collapse;font-size:12.5px;min-width:100%}.cmp th,.cmp td{border:1px solid var(--line);padding:6px 8px;text-align:center;vertical-align:middle}
+.cmp th{background:var(--acc);color:var(--accfg);white-space:nowrap}.cmp td:first-child{text-align:left;font-weight:700;white-space:nowrap;background:var(--chip)}
+.cmp td.sel{background:rgba(255,200,0,.18);font-weight:700}.cmpt{font-weight:700;margin:0 0 6px}
+#nv{position:fixed;inset:0;background:rgba(0,0,0,.88);display:none;z-index:20;overflow:auto;padding:12px}
+#nv.on{display:block}#nv .bar{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:10px;position:sticky;top:0}
+#nv img{display:block;margin:0 auto;max-width:min(1400px,100%);background:#fff;border-radius:4px}
+#nv .cap{color:#fff;text-align:center;margin:0 0 8px;font-size:13px}
+.xlink{font-weight:700;font-size:16px;color:var(--acc);text-decoration:none;border:2px solid var(--acc);border-radius:6px;padding:5px 12px}.xlink:hover{background:var(--acc);color:var(--accfg)}
+</style></head><body>
+<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button></nav>
+<a class="xlink" href="https://krishhindustan-creator.github.io/rsrw-tphigrams/">⬅ T-phi grams</a></header>
+<main id="nwp"><div class="nwpbar"><b id="nwptitle"></b><select id="nwprun"></select><span class="mut" id="nwpinfo"></span></div>
+<div id="nwpnote"></div><div id="nwpcmp"></div><div class="nwpgrid" id="nwpgrid"></div><div class="files" id="nwpfiles"></div></main>
+<div id="nv"><div class="bar"><button id="nvprev">◀ Prev</button><button id="nvclose">Close</button><button id="nvnext">Next ▶</button></div><div class="cap" id="nvcap"></div><img id="nvimg" alt=""></div>
+<script>window.NWP_BASE='./';
+(function(){
+  const BASE=window.NWP_BASE||'__NWP_BASE__', g=id=>document.getElementById(id);
+  const NAMES={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)'};
+  let MAN=null, kind=null, items=[], cur=0;
+  function load(){ if(MAN) return Promise.resolve(MAN);
+    return fetch(BASE+'manifest.json?t='+Date.now()).then(r=>r.json()).then(m=>MAN=m)
+      .catch(()=>{MAN={ens:[],mme:[],adeck:[]};return MAN}); }
+  function draw(){
+    const runs=(MAN&&MAN[kind])||[]; g('nwptitle').textContent=NAMES[kind];
+    if(!runs.length){g('nwprun').innerHTML='';g('nwpgrid').innerHTML='<div class="empty">'+(kind==='adeck'?'No a-deck yet — it appears once JTWC has numbered the system.':'No runs yet — the first one appears after the next scheduled update.')+'</div>';
+      g('nwpfiles').innerHTML='';g('nwpnote').innerHTML='';g('nwpinfo').textContent='';return}
+    const sel=g('nwprun'), keep=sel.value&&runs.some(r=>r.ic===sel.value)?sel.value:runs[0].ic;
+    sel.innerHTML=runs.map(r=>`<option value="${r.ic}">${r.label}</option>`).join(''); sel.value=keep;
+    const run=runs.find(r=>r.ic===keep); items=run.items.map(o=>({...o,f:BASE+o.f}));
+    g('nwpinfo').textContent=`${runs.length} run${runs.length===1?'':'s'} kept (${MAN.keep_days||3} days)`+(MAN.updated?` · updated ${MAN.updated}`:'');
+    g('nwpnote').innerHTML=run.note?`<div class="note">${run.note}</div>`:'';
+    g('nwpcmp').innerHTML=kind==='ens'?cmp(runs,keep):'';
+    g('nwpgrid').innerHTML=items.map((o,i)=>`<button class="c" data-n="${i}"><img loading="lazy" src="${o.f}" alt="${o.t}"><b>${o.t}</b></button>`).join('');
+    g('nwpfiles').innerHTML=(run.files||[]).map(o=>`<a href="${BASE+o.f}" download>⬇ ${o.t}</a>`).join('');
+  }
+  function stats(note){const o={};(note||'').split('<br>').forEach(l=>{const i=l.indexOf(': ');if(i>0)o[l.slice(0,i).trim()]=l.slice(i+2).trim()});return o}
+  function cmp(runs,sel){ if(runs.length<2) return '';
+    const cols=runs.slice(0,6).reverse(), S=cols.map(r=>stats(r.note)), keys=[];   // last 6 runs only
+    S.forEach(o=>Object.keys(o).forEach(k=>{if(!keys.includes(k))keys.push(k)}));
+    if(!keys.length) return '';
+    let h='<div class="cmpt">Comparison of the last '+cols.length+' runs (oldest → newest)</div><div class="cmpwrap"><table class="cmp"><tr><th></th>'+
+      cols.map(r=>'<th>'+r.label.replace(/ 20\d\d$/,'')+'</th>').join('')+'</tr>';
+    keys.forEach(k=>{h+='<tr><td>'+k+'</td>'+S.map((o,i)=>'<td'+(cols[i].ic===sel?' class="sel"':'')+'>'+(o[k]||'–')+'</td>').join('')+'</tr>'});
+    h+='</table></div>'; if(MAN.ens_compare) h+='<div class="files" style="margin:-6px 0 16px"><a href="'+BASE+MAN.ens_compare+'?t='+Date.now()+'" download>⬇ Comparison table (PNG, for WhatsApp)</a></div>';
+    return h }
+  function show(i){cur=(i+items.length)%items.length;g('nvimg').src=items[cur].f;g('nvcap').textContent=items[cur].t;g('nv').classList.add('on')}
+  g('nwpgrid').onclick=e=>{const c=e.target.closest('.c');if(c)show(+c.dataset.n)};
+  g('nvprev').onclick=()=>show(cur-1);g('nvnext').onclick=()=>show(cur+1);g('nvclose').onclick=()=>g('nv').classList.remove('on');
+  document.addEventListener('keydown',e=>{if(!g('nv').classList.contains('on'))return;
+    if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1);if(e.key==='Escape')g('nvclose').onclick()});
+  g('nwprun').onchange=draw;
+  window.NWP_SHOW=function(k){kind=k;load().then(draw)};
+})();
+(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)'};
+ function tab(t){if(!T[t])t='ens';['ens','mme','adeck'].forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
+  window.NWP_SHOW(t);if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}
+ ['ens','mme','adeck'].forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));
+ tab(location.hash.slice(1)||'ens')})();
+</script></body></html>
