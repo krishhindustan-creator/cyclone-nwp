@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>District Rainfall over India</title>
+<style>
+  :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  h1{font-size:1.25rem;margin:0 0 2px}
+  .sub{color:var(--mute);margin:0 0 12px;font-size:.9rem}
+  .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+  .days button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    padding:6px 10px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem;text-align:center}
+  .days button small{display:block;color:var(--mute);font-size:.72rem}
+  .days button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .days button[aria-pressed="true"] small{color:#d7e6f7}
+  .days button:focus-visible,.tools button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+  .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+  .zoomctl{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:4px}
+  .zoomctl button{width:34px;height:34px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:1.1rem;cursor:pointer;color:var(--ink)}
+  .zoomctl button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+  .tools label{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;padding:6px 4px}
+  #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.85);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
+  #status.hide{display:none}
+  #tip{position:fixed;pointer-events:none;background:#14202b;color:#fff;padding:6px 9px;border-radius:5px;
+    font-size:.82rem;line-height:1.3;display:none;z-index:5;max-width:220px}
+  #tip b{display:block;font-size:.9rem}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
+  .legend i{width:18px;height:12px;border:1px solid #0003;display:inline-block}
+  .tools{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .tools button{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem}
+  .note{color:var(--mute);font-size:.78rem;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>District Rainfall over India</h1>
+  <p class="sub" id="sub">ECMWF IFS 0.25° forecast, 24-hour rainfall (IST day) by district</p>
+
+  <div class="days" id="days" role="group" aria-label="Forecast day"></div>
+
+  <div class="stage">
+    <canvas id="map" aria-label="District-wise rainfall forecast map of India"></canvas>
+    <div id="status">Loading district boundaries…</div>
+    <div class="zoomctl">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">−</button>
+      <button id="zreset" aria-label="Reset view">⟲</button>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="tools">
+    <button id="png">Save map as PNG</button>
+    <button id="refresh">Refresh forecast</button>
+    <label><input type="checkbox" id="lbl" checked> Show district names and values when zoomed in</label>
+  </div>
+
+  <p class="note">
+    Forecast: ECMWF IFS 0.25° (via Open-Meteo), sampled at one point (centroid) per district, so a district’s value is
+    a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Not an official IMD product.
+  </p>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ---------- Configuration ---------- */
+// Put a (simplified) district GeoJSON in your repo and point to it here.
+const GEO_URL = 'india_districts.geojson';
+const MODEL = 'ecmwf_ifs025';
+const DAYS = 10;
+const BATCH = 100;               // districts per API request
+const CACHE_HOURS = 3;
+// Property names tried in order (add yours if your file differs)
+const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
+const STATE_KEYS = ['STATE','state','State','st_nm','STATE_UT','NAME_1','stname','ST_NM'];
+
+// IMD 24-h rainfall categories (mm)
+const BINS = [
+  {min:0,     label:'No rain',               color:'#eef1f4'},
+  {min:0.1,   label:'Very light (0.1–2.4)',  color:'#d6efe3'},
+  {min:2.5,   label:'Light (2.5–15.5)',      color:'#86d1a4'},
+  {min:15.6,  label:'Moderate (15.6–64.4)',  color:'#3db1d9'},
+  {min:64.5,  label:'Heavy (64.5–115.5)',    color:'#2f6fd0'},
+  {min:115.6, label:'Very heavy (115.6–204.4)', color:'#7a3fc0'},
+  {min:204.5, label:'Extremely heavy (≥204.5)', color:'#c2185b'}
+];
+const binOf = v => { let b = BINS[0]; for (const x of BINS) if (v >= x.min) b = x; return b; };
+
+/* ---------- State ---------- */
+const cv = document.getElementById('map'), ctx = cv.getContext('2d');
+const statusEl = document.getElementById('status'), tip = document.getElementById('tip');
+let feats = [];          // {name,state,polys,bbox,lat,lon,rain:[]}
+let times = [];          // ISO dates
+let dayIdx = 0, hover = null, view = null;
+const Z = {z:1, tx:0, ty:0};
+const MAXZ = 14;
+let showLabels = true;
+
+const pick = (p, keys) => { for (const k of keys) if (p[k] != null && p[k] !== '') return String(p[k]); return ''; };
+
+/* ---------- Geometry ---------- */
+function ringArea(r){ let a=0; for (let i=0,j=r.length-1;i<r.length;j=i++) a += (r[j][0]*r[i][1]-r[i][0]*r[j][1]); return a/2; }
+function ringCentroid(r){
+  let a=0,cx=0,cy=0;
+  for (let i=0,j=r.length-1;i<r.length;j=i++){
+    const f = r[j][0]*r[i][1]-r[i][0]*r[j][1];
+    a+=f; cx+=(r[j][0]+r[i][0])*f; cy+=(r[j][1]+r[i][1])*f;
+  }
+  a/=2;
+  return Math.abs(a)<1e-12 ? null : [cx/(6*a), cy/(6*a)];
+}
+function prepare(geo){
+  const out=[];
+  for (const f of geo.features){
+    if (!f.geometry) continue;
+    const polys = f.geometry.type==='Polygon' ? [f.geometry.coordinates]
+                : f.geometry.type==='MultiPolygon' ? f.geometry.coordinates : [];
+    if (!polys.length) continue;
+    let bb=[Infinity,Infinity,-Infinity,-Infinity], big=polys[0], bigA=-1;
+    for (const poly of polys){
+      for (const [x,y] of poly[0]){ if(x<bb[0])bb[0]=x; if(y<bb[1])bb[1]=y; if(x>bb[2])bb[2]=x; if(y>bb[3])bb[3]=y; }
+      const a=Math.abs(ringArea(poly[0])); if (a>bigA){bigA=a;big=poly;}
+    }
+    const c = ringCentroid(big[0]) || [(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
+    out.push({
+      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS),
+      polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
+    });
+  }
+  return out;
+}
+function pip(x,y,ring){
+  let in_=false;
+  for (let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+    if (((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) in_=!in_;
+  }
+  return in_;
+}
+function contains(f,x,y){
+  const b=f.bbox; if (x<b[0]||x>b[2]||y<b[1]||y>b[3]) return false;
+  for (const poly of f.polys){
+    if (!pip(x,y,poly[0])) continue;
+    let hole=false; for (let k=1;k<poly.length;k++) if (pip(x,y,poly[k])) {hole=true;break;}
+    if (!hole) return true;
+  }
+  return false;
+}
+
+/* ---------- Drawing ---------- */
+function layout(){
+  let b=[Infinity,Infinity,-Infinity,-Infinity];
+  for (const f of feats){ b[0]=Math.min(b[0],f.bbox[0]); b[1]=Math.min(b[1],f.bbox[1]); b[2]=Math.max(b[2],f.bbox[2]); b[3]=Math.max(b[3],f.bbox[3]); }
+  const k = Math.cos(22*Math.PI/180);                 // equirectangular, scaled at ~22°N
+  const wDeg=(b[2]-b[0])*k, hDeg=(b[3]-b[1]);
+  const cssW = cv.parentElement.clientWidth - 16;
+  const cssH = Math.round(cssW*hDeg/wDeg);
+  const dpr = window.devicePixelRatio||1;
+  cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+'px';
+  view={b,k,s:cssW/wDeg,dpr,cssW,cssH};
+  clampZ();
+}
+const px = (lon,lat)=>[(lon-view.b[0])*view.k*view.s*Z.z+Z.tx, (view.b[3]-lat)*view.s*Z.z+Z.ty];
+function clampZ(){
+  Z.z=Math.max(1,Math.min(MAXZ,Z.z));
+  Z.tx=Math.min(0,Math.max(view.cssW*(1-Z.z),Z.tx));
+  Z.ty=Math.min(0,Math.max(view.cssH*(1-Z.z),Z.ty));
+}
+function zoomAt(cx,cy,nz){
+  nz=Math.max(1,Math.min(MAXZ,nz)); const f=nz/Z.z;
+  Z.tx=cx-(cx-Z.tx)*f; Z.ty=cy-(cy-Z.ty)*f; Z.z=nz; clampZ(); draw();
+}
+function visible(f){
+  const a=px(f.bbox[0],f.bbox[3]), b=px(f.bbox[2],f.bbox[1]);
+  return !(b[0]<0||a[0]>view.cssW||b[1]<0||a[1]>view.cssH);
+}
+function path(f){
+  ctx.beginPath();
+  for (const poly of f.polys) for (const ring of poly){
+    ring.forEach(([x,y],i)=>{const [X,Y]=px(x,y); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+    ctx.closePath();
+  }
+}
+function draw(){
+  if(!view) return;
+  ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
+  ctx.clearRect(0,0,view.cssW,view.cssH);
+  ctx.lineJoin='round';
+  for (const f of feats){
+    if (!visible(f)) continue;
+    const v=f.rain[dayIdx];
+    ctx.fillStyle = v==null ? '#e3e7eb' : binOf(v).color;
+    path(f); ctx.fill('evenodd');
+    ctx.strokeStyle='rgba(20,32,43,.4)'; ctx.lineWidth=Math.min(1.2,.4+Z.z*.06); ctx.stroke();
+  }
+  if (hover){ path(hover); ctx.strokeStyle='#000'; ctx.lineWidth=1.6; ctx.stroke(); }
+  if (showLabels && Z.z>=1.5) drawLabels();
+}
+function drawLabels(){
+  const placed=[];
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='600 11px system-ui,-apple-system,"Segoe UI",sans-serif';
+  const list=feats.filter(visible).sort((a,b)=>b.area-a.area);
+  for (const f of list){
+    const [x,y]=px(f.lon,f.lat);
+    if (x<6||y<6||x>view.cssW-6||y>view.cssH-6) continue;
+    const v=f.rain[dayIdx];
+    const l1=f.name||'', l2=v==null?'–':v.toFixed(1)+' mm';
+    const w=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+6, h=26;
+    const r=[x-w/2,y-h/2,x+w/2,y+h/2];
+    if (placed.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3]))) continue;
+    placed.push(r);
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.fillStyle='#14202b';
+    ctx.strokeText(l1,x,y-6); ctx.fillText(l1,x,y-6);
+    ctx.strokeText(l2,x,y+7); ctx.fillText(l2,x,y+7);
+  }
+}
+
+/* ---------- Forecast loading ---------- */
+async function fetchBatch(sub, tries=3){
+  const url='https://api.open-meteo.com/v1/forecast?latitude='+sub.map(f=>f.lat).join(',')
+    +'&longitude='+sub.map(f=>f.lon).join(',')
+    +'&daily=precipitation_sum&models='+MODEL+'&timezone=Asia%2FKolkata&forecast_days='+DAYS;
+  for (let t=0;t<tries;t++){
+    const r=await fetch(url);
+    if (r.ok){ const j=await r.json(); return Array.isArray(j)?j:[j]; }
+    if (r.status===429 || r.status>=500) await new Promise(s=>setTimeout(s,1500*(t+1)));
+    else throw new Error('Forecast service returned '+r.status);
+  }
+  throw new Error('Forecast service is busy. Try again in a minute.');
+}
+async function loadForecast(force){
+  const key='dr_v1_'+MODEL+'_'+Math.floor(Date.now()/(CACHE_HOURS*3600e3))+'_'+feats.length;
+  if (!force){
+    try{ const c=JSON.parse(localStorage.getItem(key)||'null');
+      if (c && c.rain.length===feats.length){ times=c.times; feats.forEach((f,i)=>f.rain=c.rain[i]); return; } }catch(e){}
+  }
+  statusEl.classList.remove('hide');
+  const n=Math.ceil(feats.length/BATCH);
+  for (let i=0;i<n;i++){
+    statusEl.textContent='Loading ECMWF forecast… '+(i+1)+' of '+n;
+    const sub=feats.slice(i*BATCH,(i+1)*BATCH);
+    const res=await fetchBatch(sub);
+    res.forEach((r,j)=>{ sub[j].rain=r.daily.precipitation_sum.map(v=>v==null?null:+v); });
+    if (i===0) times=res[0].daily.time;
+  }
+  try{
+    Object.keys(localStorage).filter(k=>k.startsWith('dr_v1_')).forEach(k=>localStorage.removeItem(k));
+    localStorage.setItem(key,JSON.stringify({times,rain:feats.map(f=>f.rain)}));
+  }catch(e){}
+}
+
+/* ---------- UI ---------- */
+function buildDays(){
+  const box=document.getElementById('days'); box.innerHTML='';
+  times.forEach((t,i)=>{
+    const d=new Date(t+'T00:00:00');
+    const b=document.createElement('button');
+    b.setAttribute('aria-pressed',i===dayIdx);
+    b.innerHTML=d.toLocaleDateString('en-GB',{weekday:'short'})+'<small>'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</small>';
+    b.onclick=()=>{dayIdx=i; [...box.children].forEach((c,k)=>c.setAttribute('aria-pressed',k===i)); draw();};
+    box.appendChild(b);
+  });
+}
+function buildLegend(){
+  document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('');
+}
+function local(e){
+  const r=cv.getBoundingClientRect();
+  return [(e.clientX-r.left)/r.width*view.cssW,(e.clientY-r.top)/r.height*view.cssH];
+}
+function at(e){
+  const [x,y]=local(e);
+  const lon=view.b[0]+((x-Z.tx)/Z.z)/(view.k*view.s), lat=view.b[3]-((y-Z.ty)/Z.z)/view.s;
+  return feats.find(f=>contains(f,lon,lat))||null;
+}
+function showTip(e){
+  if(!view) return;
+  const f=at(e);
+  if (f!==hover){ hover=f; draw(); }
+  if (!f){ tip.style.display='none'; return; }
+  const v=f.rain[dayIdx];
+  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]);
+  tip.style.display='block';
+  tip.style.left=Math.min(e.clientX+14,innerWidth-230)+'px'; tip.style.top=(e.clientY+14)+'px';
+}
+const ptrs=new Map(); let pinch=null, travel=0;
+const pdist=()=>{const a=[...ptrs.values()]; return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);};
+const pmid=()=>{const a=[...ptrs.values()]; return [(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];};
+cv.addEventListener('wheel',e=>{
+  if(!view) return; e.preventDefault();
+  const [x,y]=local(e); zoomAt(x,y,Z.z*Math.exp(-e.deltaY*0.0018));
+},{passive:false});
+cv.addEventListener('pointerdown',e=>{
+  if(!view) return;
+  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,local(e)); travel=0;
+  pinch = ptrs.size===2 ? pdist() : null;
+});
+cv.addEventListener('pointermove',e=>{
+  if(!view) return;
+  if(!ptrs.has(e.pointerId)){ showTip(e); return; }      // mouse hover
+  const p=local(e), prev=ptrs.get(e.pointerId); ptrs.set(e.pointerId,p);
+  if(ptrs.size===2){
+    const d=pdist(), m=pmid();
+    if(pinch) zoomAt(m[0],m[1],Z.z*d/pinch);
+    pinch=d; travel=99; return;
+  }
+  travel+=Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1]);
+  if(travel>6 && Z.z>1){ Z.tx+=p[0]-prev[0]; Z.ty+=p[1]-prev[1]; clampZ(); tip.style.display='none'; draw(); }
+});
+function endPtr(e){
+  const wasTap = ptrs.size===1 && travel<=6;
+  ptrs.delete(e.pointerId); pinch=null;
+  if (wasTap) showTip(e);
+}
+cv.addEventListener('pointerup',endPtr);
+cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('pointerleave',e=>{ if(!ptrs.size){hover=null;tip.style.display='none';draw();} });
+document.getElementById('zin').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z*1.6);
+document.getElementById('zout').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z/1.6);
+document.getElementById('zreset').onclick=()=>{Z.z=1;Z.tx=0;Z.ty=0;draw();};
+document.getElementById('lbl').onchange=e=>{showLabels=e.target.checked;draw();};
+document.getElementById('png').onclick=()=>{
+  cv.toBlob(b=>{const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+    a.download='district_rain_'+times[dayIdx]+'.png'; a.click(); URL.revokeObjectURL(a.href);});
+};
+document.getElementById('refresh').onclick=async()=>{
+  try{ await loadForecast(true); statusEl.classList.add('hide'); draw(); }
+  catch(e){ statusEl.textContent=e.message; }
+};
+addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
+
+/* ---------- Boot ---------- */
+(async function(){
+  try{
+    buildLegend();
+    const r=await fetch(GEO_URL);
+    if(!r.ok) throw new Error('Could not load '+GEO_URL+' ('+r.status+'). Add the district GeoJSON to your repo at that path.');
+    feats=prepare(await r.json());
+    if(!feats.length) throw new Error('No polygon features found in '+GEO_URL);
+    layout();
+    await loadForecast(false);
+    buildDays(); statusEl.classList.add('hide'); draw();
+  }catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
+})();
+</script>
+</body>
+</html>
