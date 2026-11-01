@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>District Rainfall over India</title>
+<title>ECMWF District Rainfall</title>
 <style>
   :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
   *{box-sizing:border-box}
@@ -48,7 +48,7 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>District Rainfall over India</h1>
+  <h1>ECMWF District Rainfall</h1>
   <div class="icbar">
     <div class="ic" id="ictxt">ECMWF IFS 0.25° · finding latest run…</div>
     <div class="icsub" id="icsub">24-hour district rainfall forecast</div>
@@ -245,7 +245,7 @@ const isoUTC=t=>t.toISOString().slice(0,16);
 const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMonth()];
 const fmtZY=t=>fmtZ(t)+' '+t.getUTCFullYear();
 const fmtIST=t=>{const s=new Date(t.getTime()+5.5*HR);return p2(s.getUTCHours())+':'+p2(s.getUTCMinutes())+' IST '+p2(s.getUTCDate())+' '+MON[s.getUTCMonth()];};
-const ARCHIVE=new URLSearchParams(location.search).has('archive');   // ?archive=1 -> pick any run of the last 7 days
+const ARCHIVE=true;          // run list (latest + last 7 days); the fallback 'latest' mode is used only if no pinned run can be loaded
 let IC=null, mode='run', quiet=false, updating=false;   // mode 'run' = pinned 00/12 UTC run; 'latest' = fallback
 const setStatus=m=>{ if(quiet) return; statusEl.classList.remove('hide'); statusEl.textContent=m; };
 
@@ -331,23 +331,39 @@ async function openRun(ic,force){
   try{ setStatus('Loading run '+fmtZY(ic)+'…'); await loadRun(ic,force); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
   catch(e){ statusEl.classList.remove('hide'); statusEl.textContent='Could not load run '+fmtZY(ic)+': '+e.message; }
 }
-async function bootArchive(){
-  setStatus('Finding available ECMWF runs…');
-  const newest=await pickRun();
-  if (!newest) throw new Error('No ECMWF run is available from the forecast service right now. Try again later.');
+let newestIC=null;
+function buildRunList(newest){
+  newestIC=newest;
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
   sel.innerHTML=Array.from({length:14},(_,k)=>{ const t=new Date(newest.getTime()-k*12*HR);
     return '<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>'; }).join('');
+  if (IC) sel.value=isoUTC(IC);
   sel.onchange=()=>openRun(new Date(sel.value+':00Z'),false);
+}
+async function bootArchive(){
+  setStatus('Finding latest ECMWF run…');
+  const newest=await pickRun();
+  if (!newest){                                   // pinned runs unavailable: show the service's latest data instead
+    document.getElementById('runbar').hidden=true;
+    await loadForecast(false); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); return;
+  }
+  buildRunList(newest);
   await openRun(newest,false);
 }
-async function checkNew(){            // runs every 15 min: switch to the next 00/12 UTC run once ECMWF has released it
-  if (ARCHIVE || updating || !feats.length) return;
-  if (mode==='run' && IC && latestBase()<=IC.getTime()) return;
+async function checkNew(){            // every 15 min: when ECMWF releases the next 00/12 UTC run, add it and switch to it if you were on the latest
+  if (updating || !feats.length) return;
+  if (mode==='run' && newestIC && latestBase()<=newestIC.getTime()) return;
   updating=true; quiet=true;
   try{
-    const ic=await pickRun();
-    if (ic && (mode!=='run' || !IC || ic>IC)){ await loadForecast(false); buildDays(); renderHeader(); draw(); }
+    if (mode==='latest'){ if (await pickRun()) await bootArchive(); }
+    else{
+      const ic=await pickRun();
+      if (ic && ic>newestIC){
+        const wasLatest=IC && IC.getTime()===newestIC.getTime();
+        if (wasLatest) await openRun(ic,false);
+        buildRunList(ic);
+      }
+    }
   }catch(e){} finally{ updating=false; quiet=false; }
 }
 setInterval(checkNew,15*60e3);
@@ -358,9 +374,8 @@ function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date
 function renderHeader(){
   const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
   if (mode==='run' && IC){
-    t.textContent='ECMWF IFS 0.25° · '+(ARCHIVE?'Archive · ':'')+'IC: '+fmtZY(IC);
-    s.textContent=ARCHIVE ? 'Runs of the last 7 days: choose a run (IC) below. Day 1 is the first 24 h after the IC.'
-      : 'Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date(IC.getTime()+12*HR))+') appears here automatically once ECMWF releases it.';
+    t.textContent='ECMWF IFS 0.25° · IC: '+fmtZY(IC);
+    s.textContent='Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date((newestIC||IC).getTime()+12*HR))+') appears automatically once ECMWF releases it. Earlier runs of the last 7 days are in the Run list.';
   }else{
     t.textContent='ECMWF IFS 0.25° · '+(IC?'latest run, IC: '+fmtZY(IC):'latest available run');
     s.textContent='The 00/12 UTC run could not be pinned, so this shows the forecast service’s latest data by IST calendar day.';
@@ -468,7 +483,7 @@ document.getElementById('png').onclick=()=>{
     a.download='district_rain_'+stamp+'.png'; a.click(); URL.revokeObjectURL(a.href);});
 };
 document.getElementById('refresh').onclick=async()=>{
-  if (ARCHIVE && IC){ await openRun(IC,true); return; }
+  if (mode==='run' && IC){ await openRun(IC,true); return; }
   try{ await loadForecast(true); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
   catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
 };
@@ -483,8 +498,7 @@ addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
     feats=prepare(await r.json());
     if(!feats.length) throw new Error('No polygon features found in '+GEO_URL);
     layout();
-    if (ARCHIVE) await bootArchive();
-    else{ await loadForecast(false); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
+    await bootArchive();
   }catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
 })();
 </script>
