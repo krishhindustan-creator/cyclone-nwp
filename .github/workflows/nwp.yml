@@ -46,6 +46,8 @@ jobs:
           IMD_MAX_MINUTES: "10"  # if IMD's server is slow, give up on the IMD models after 10 min
           KEEP_DAYS: "15"
         run: python nwp_runner.py
+      - name: Add district rainfall page
+        run: cp district-rainfall.html india_districts.geojson site/
       - name: Publish (gh-pages, no history so old runs do not pile up)
         run: |
           cd site
