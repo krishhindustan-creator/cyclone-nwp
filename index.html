@@ -29,10 +29,11 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
 #nv .cap{color:#fff;text-align:center;margin:0 0 8px;font-size:13px}
 .xlink{font-weight:700;font-size:16px;color:var(--acc);text-decoration:none;border:2px solid var(--acc);border-radius:6px;padding:5px 12px}.xlink:hover{background:var(--acc);color:var(--accfg)}
 </style></head><body>
-<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button></nav>
+<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button><button id="t_district">District Rainfall over India</button></nav>
 <a class="xlink" href="https://krishhindustan-creator.github.io/rsrw-tphigrams/">⬅ T-phi grams</a></header>
 <main id="nwp"><div class="nwpbar"><b id="nwptitle"></b><select id="nwprun"></select><span class="mut" id="nwpinfo"></span></div>
 <div id="nwpnote"></div><div id="nwpcmp"></div><div class="nwpgrid" id="nwpgrid"></div><div class="files" id="nwpfiles"></div></main>
+<main id="dist" style="display:none"><iframe id="distf" title="District Rainfall over India" style="width:100%;height:calc(100vh - 120px);min-height:640px;border:0;border-radius:8px;background:#f4f6f8"></iframe></main>
 <div id="nv"><div class="bar"><button id="nvprev">◀ Prev</button><button id="nvclose">Close</button><button id="nvnext">Next ▶</button></div><div class="cap" id="nvcap"></div><img id="nvimg" alt=""></div>
 <script>window.NWP_BASE='./';
 (function(){
@@ -73,9 +74,11 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
   g('nwprun').onchange=draw;
   window.NWP_SHOW=function(k){kind=k;load().then(draw)};
 })();
-(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)'};
- function tab(t){if(!T[t])t='ens';['ens','mme','adeck'].forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
-  window.NWP_SHOW(t);if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}
- ['ens','mme','adeck'].forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));
+(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)',district:'District Rainfall over India'},K=['ens','mme','adeck','district'];
+ function tab(t){if(!T[t])t='ens';K.forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
+  const d=t==='district';g('nwp').style.display=d?'none':'';g('dist').style.display=d?'':'none';
+  if(d){if(!g('distf').getAttribute('src'))g('distf').src='district-rainfall.html'}else window.NWP_SHOW(t);
+  if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}
+ K.forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));
  tab(location.hash.slice(1)||'ens')})();
 </script></body></html>
