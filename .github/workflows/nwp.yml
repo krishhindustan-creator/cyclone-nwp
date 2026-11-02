@@ -47,7 +47,7 @@ jobs:
           KEEP_DAYS: "15"
         run: python nwp_runner.py
       - name: Add district rainfall page
-        run: cp district-rainfall.html india_districts.geojson site/
+        run: cp district-rainfall.html india_districts.geojson imd_subdivisions.json site/
       - name: Publish (gh-pages, no history so old runs do not pile up)
         run: |
           cd site
