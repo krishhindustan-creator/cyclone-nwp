@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ECMWF District Rainfall</title>
+<style>
+  :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px}
+  h1{font-size:1.25rem;margin:0 0 2px}
+  .sub{color:var(--mute);margin:0 0 12px;font-size:.9rem}
+  .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+  .days button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);
+    padding:6px 10px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem;text-align:center}
+  .days button small{display:block;color:var(--mute);font-size:.72rem}
+  .days button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .days button[aria-pressed="true"] small{color:#d7e6f7}
+  .days button:focus-visible,.tools button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+  .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px}
+  canvas{display:block;width:100%;height:auto;touch-action:none;cursor:grab}
+  canvas:active{cursor:grabbing}
+  .zoomctl{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:4px}
+  .zoomctl button{width:34px;height:34px;border:1px solid var(--line);background:var(--panel);border-radius:6px;font-size:1.1rem;cursor:pointer;color:var(--ink)}
+  .zoomctl button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+  .tools label{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;padding:6px 4px}
+  #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.85);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
+  #status.hide{display:none}
+  #tip{position:fixed;pointer-events:none;background:#14202b;color:#fff;padding:6px 9px;border-radius:5px;
+    font-size:.82rem;line-height:1.3;display:none;z-index:5;max-width:220px}
+  #tip b{display:block;font-size:.9rem}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
+  .legend i{width:18px;height:12px;border:1px solid #0003;display:inline-block}
+  .tools{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .tools button{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem}
+  .note{color:var(--mute);font-size:.78rem;margin-top:10px}
+  .icbar{background:var(--accent);color:#fff;border-radius:8px;padding:10px 14px;margin:0 0 10px}
+  .ic{font-size:1.2rem;font-weight:700}
+  .icsub{font-size:.82rem;opacity:.93;margin-top:2px}
+  .icwarn{margin-top:6px;background:rgba(255,255,255,.2);border-radius:5px;padding:4px 8px;font-size:.82rem}
+  .sub{font-weight:600;color:var(--ink)}
+  [hidden]{display:none!important}
+  .runbar{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:.9rem}
+  .runbar select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ECMWF District Rainfall</h1>
+  <div class="icbar">
+    <div class="ic" id="ictxt">ECMWF IFS 0.25° · finding latest run…</div>
+    <div class="icsub" id="icsub">24-hour district rainfall forecast</div>
+    <div class="icwarn" id="icwarn" hidden></div>
+  </div>
+  <p class="sub" id="win"></p>
+  <div class="runbar" id="runbar" hidden><label for="runsel">Run (IC):</label><select id="runsel"></select></div>
+
+  <div class="days" id="days" role="group" aria-label="Forecast day"></div>
+
+  <div class="stage">
+    <canvas id="map" aria-label="District-wise rainfall forecast map of India"></canvas>
+    <div id="status">Loading district boundaries…</div>
+    <div class="zoomctl">
+      <button id="zin" aria-label="Zoom in">+</button>
+      <button id="zout" aria-label="Zoom out">−</button>
+      <button id="zreset" aria-label="Reset view">⟲</button>
+    </div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+  <div class="tools">
+    <button id="png">Save map as PNG</button>
+    <button id="refresh">Refresh forecast</button>
+    <label><input type="checkbox" id="lbl" checked> Show district names and values when zoomed in</label>
+    <label id="sdlbl" hidden><input type="checkbox" id="sdb" checked> IMD subdivision boundaries</label>
+    <label id="sdnlbl" hidden><input type="checkbox" id="sdn" checked> Subdivision names</label>
+  </div>
+
+  <p class="note" id="fn">
+    Forecast: ECMWF IFS 0.25° (via Open-Meteo). Day n is the n-th 24 hours after the run’s initial condition (IC). Sampled at one point (centroid) per district, so a district’s value is
+    a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.
+  </p>
+</div>
+<div id="tip"></div>
+
+<script>
+/* ---------- Configuration ---------- */
+// Put a (simplified) district GeoJSON in your repo and point to it here.
+const GEO_URL = 'india_districts.geojson';
+const MODEL = 'ecmwf_ifs025';
+const DAYS = 10;
+const BATCH = 80;                // forecast points per API request
+const CACHE_HOURS = 3;
+// Property names tried in order (add yours if your file differs)
+const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
+const STATE_KEYS = ['STATE','state','State','st_nm','STATE_UT','NAME_1','stname','ST_NM'];
+
+// IMD 24-h rainfall categories (mm)
+const BINS = [
+  {min:0,     label:'No rain',               color:'#eef1f4'},
+  {min:0.1,   label:'Very light (0.1–2.4)',  color:'#d6efe3'},
+  {min:2.5,   label:'Light (2.5–15.5)',      color:'#86d1a4'},
+  {min:15.6,  label:'Moderate (15.6–64.4)',  color:'#3db1d9'},
+  {min:64.5,  label:'Heavy (64.5–115.5)',    color:'#2f6fd0'},
+  {min:115.6, label:'Very heavy (115.6–204.4)', color:'#7a3fc0'},
+  {min:204.5, label:'Extremely heavy (≥204.5)', color:'#c2185b'}
+];
+const binOf = v => { let b = BINS[0]; for (const x of BINS) if (v >= x.min) b = x; return b; };
+
+/* ---------- State ---------- */
+const cv = document.getElementById('map'), ctx = cv.getContext('2d');
+const statusEl = document.getElementById('status'), tip = document.getElementById('tip');
+let feats = [];          // {name,state,polys,bbox,lat,lon,rain:[]}
+let times = [];          // ISO dates
+let dayIdx = 0, hover = null, view = null;
+let SD = null, showSD = true, showSDN = true;     // IMD subdivision overlay (imd_subdivisions.json)
+const Z = {z:1, tx:0, ty:0};
+const MAXZ = 14;
+let showLabels = true;
+
+const pick = (p, keys) => { for (const k of keys) if (p[k] != null && p[k] !== '') return String(p[k]); return ''; };
+
+/* ---------- Geometry ---------- */
+function ringArea(r){ let a=0; for (let i=0,j=r.length-1;i<r.length;j=i++) a += (r[j][0]*r[i][1]-r[i][0]*r[j][1]); return a/2; }
+function ringCentroid(r){
+  let a=0,cx=0,cy=0;
+  for (let i=0,j=r.length-1;i<r.length;j=i++){
+    const f = r[j][0]*r[i][1]-r[i][0]*r[j][1];
+    a+=f; cx+=(r[j][0]+r[i][0])*f; cy+=(r[j][1]+r[i][1])*f;
+  }
+  a/=2;
+  return Math.abs(a)<1e-12 ? null : [cx/(6*a), cy/(6*a)];
+}
+function prepare(geo){
+  const out=[];
+  for (const f of geo.features){
+    if (!f.geometry) continue;
+    const polys = f.geometry.type==='Polygon' ? [f.geometry.coordinates]
+                : f.geometry.type==='MultiPolygon' ? f.geometry.coordinates : [];
+    if (!polys.length) continue;
+    let bb=[Infinity,Infinity,-Infinity,-Infinity], big=polys[0], bigA=-1;
+    for (const poly of polys){
+      for (const [x,y] of poly[0]){ if(x<bb[0])bb[0]=x; if(y<bb[1])bb[1]=y; if(x>bb[2])bb[2]=x; if(y>bb[3])bb[3]=y; }
+      const a=Math.abs(ringArea(poly[0])); if (a>bigA){bigA=a;big=poly;}
+    }
+    const c = ringCentroid(big[0]) || [(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
+    out.push({
+      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS),
+      sd: pick(f.properties||{},['sd']), polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
+    });
+  }
+  return out;
+}
+function pip(x,y,ring){
+  let in_=false;
+  for (let i=0,j=ring.length-1;i<ring.length;j=i++){
+    const xi=ring[i][0],yi=ring[i][1],xj=ring[j][0],yj=ring[j][1];
+    if (((yi>y)!==(yj>y)) && (x < (xj-xi)*(y-yi)/(yj-yi)+xi)) in_=!in_;
+  }
+  return in_;
+}
+function contains(f,x,y){
+  const b=f.bbox; if (x<b[0]||x>b[2]||y<b[1]||y>b[3]) return false;
+  for (const poly of f.polys){
+    if (!pip(x,y,poly[0])) continue;
+    let hole=false; for (let k=1;k<poly.length;k++) if (pip(x,y,poly[k])) {hole=true;break;}
+    if (!hole) return true;
+  }
+  return false;
+}
+
+/* ---------- Drawing ---------- */
+function layout(){
+  let b=[Infinity,Infinity,-Infinity,-Infinity];
+  for (const f of feats){ b[0]=Math.min(b[0],f.bbox[0]); b[1]=Math.min(b[1],f.bbox[1]); b[2]=Math.max(b[2],f.bbox[2]); b[3]=Math.max(b[3],f.bbox[3]); }
+  const k = Math.cos(22*Math.PI/180);                 // equirectangular, scaled at ~22°N
+  const wDeg=(b[2]-b[0])*k, hDeg=(b[3]-b[1]);
+  const cssW = cv.parentElement.clientWidth - 16;
+  const cssH = Math.round(cssW*hDeg/wDeg);
+  const dpr = window.devicePixelRatio||1;
+  cv.width=cssW*dpr; cv.height=cssH*dpr; cv.style.height=cssH+'px';
+  view={b,k,s:cssW/wDeg,dpr,cssW,cssH};
+  clampZ();
+}
+const px = (lon,lat)=>[(lon-view.b[0])*view.k*view.s*Z.z+Z.tx, (view.b[3]-lat)*view.s*Z.z+Z.ty];
+function clampZ(){
+  Z.z=Math.max(1,Math.min(MAXZ,Z.z));
+  Z.tx=Math.min(0,Math.max(view.cssW*(1-Z.z),Z.tx));
+  Z.ty=Math.min(0,Math.max(view.cssH*(1-Z.z),Z.ty));
+}
+function zoomAt(cx,cy,nz){
+  nz=Math.max(1,Math.min(MAXZ,nz)); const f=nz/Z.z;
+  Z.tx=cx-(cx-Z.tx)*f; Z.ty=cy-(cy-Z.ty)*f; Z.z=nz; clampZ(); draw();
+}
+function visible(f){
+  const a=px(f.bbox[0],f.bbox[3]), b=px(f.bbox[2],f.bbox[1]);
+  return !(b[0]<0||a[0]>view.cssW||b[1]<0||a[1]>view.cssH);
+}
+function path(f){
+  ctx.beginPath();
+  for (const poly of f.polys) for (const ring of poly){
+    ring.forEach(([x,y],i)=>{const [X,Y]=px(x,y); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);});
+    ctx.closePath();
+  }
+}
+function draw(){
+  if(!view) return;
+  ctx.setTransform(view.dpr,0,0,view.dpr,0,0);
+  ctx.clearRect(0,0,view.cssW,view.cssH);
+  ctx.lineJoin='round';
+  for (const f of feats){
+    if (!visible(f)) continue;
+    const v=f.rain[dayIdx];
+    ctx.fillStyle = v==null ? '#e3e7eb' : binOf(v).color;
+    path(f); ctx.fill('evenodd');
+    ctx.strokeStyle='rgba(20,32,43,.4)'; ctx.lineWidth=Math.min(1.2,.4+Z.z*.06); ctx.stroke();
+  }
+  if (hover){ path(hover); ctx.strokeStyle='#000'; ctx.lineWidth=1.6; ctx.stroke(); }
+  if (SD && showSD) drawSDLines();
+  const placed=[];
+  if (SD && showSD && showSDN) drawSDLabels(placed);
+  if (showLabels && Z.z>=1.5) drawLabels(placed);
+}
+function drawSDLines(){
+  ctx.save(); ctx.strokeStyle='#111'; ctx.lineWidth=Math.min(2.8,1.7+Z.z*.08); ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  for (const ln of SD.lines){
+    for (let i=0;i<ln.length;i++){ const [X,Y]=px(ln[i][0],ln[i][1]); if(i) ctx.lineTo(X,Y); else ctx.moveTo(X,Y); }
+  }
+  ctx.stroke(); ctx.restore();
+}
+function drawSDLabels(placed){
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='700 '+Math.round(Math.min(15,11+Z.z*.6))+'px system-ui,-apple-system,"Segoe UI",sans-serif';
+  const W=view.cssW, Hh=view.cssH, cx=W/2, cy=Hh/2, vis=(x,y)=>x>=8&&y>=8&&x<=W-8&&y<=Hh-8;
+  for (const lb of SD.labels){                         // largest subdivisions first
+    let [x,y]=px(lb.lon,lb.lat);
+    if (!vis(x,y)){                                    // zoomed in: put the name on a visible part of the subdivision
+      let best=null, bd=1e18;
+      for (const q of lb.pts){ const [X,Y]=px(q[0],q[1]); if(!vis(X,Y)) continue; const d=(X-cx)**2+(Y-cy)**2; if(d<bd){bd=d;best=[X,Y];} }
+      if (!best) continue; [x,y]=best;
+    }
+    const w=ctx.measureText(lb.n).width+6, h=16, r=[x-w/2,y-h/2,x+w/2,y+h/2];
+    if (placed.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3]))) continue;
+    placed.push(r);
+    ctx.lineWidth=3.5; ctx.strokeStyle='rgba(255,255,255,.93)'; ctx.fillStyle='#000';
+    ctx.strokeText(lb.n,x,y); ctx.fillText(lb.n,x,y);
+  }
+  ctx.restore();
+}
+function drawLabels(placed){
+  placed=placed||[];
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='600 11px system-ui,-apple-system,"Segoe UI",sans-serif';
+  const list=feats.filter(visible).sort((a,b)=>b.area-a.area);
+  for (const f of list){
+    const [x,y]=px(f.lon,f.lat);
+    if (x<6||y<6||x>view.cssW-6||y>view.cssH-6) continue;
+    const v=f.rain[dayIdx];
+    const l1=f.name||'', l2=v==null?'–':v.toFixed(1)+' mm';
+    const w=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+6, h=26;
+    const r=[x-w/2,y-h/2,x+w/2,y+h/2];
+    if (placed.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3]))) continue;
+    placed.push(r);
+    ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.fillStyle='#14202b';
+    ctx.strokeText(l1,x,y-6); ctx.fillText(l1,x,y-6);
+    ctx.strokeText(l2,x,y+7); ctx.fillText(l2,x,y+7);
+  }
+}
+
+/* ---------- Forecast loading ---------- */
+const SINGLE='https://single-runs-api.open-meteo.com/v1/forecast', LIVE='https://api.open-meteo.com/v1/forecast';
+const HR=3600e3, MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const p2=n=>String(n).padStart(2,'0');
+const isoUTC=t=>t.toISOString().slice(0,16);
+const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMonth()];
+const fmtZY=t=>fmtZ(t)+' '+t.getUTCFullYear();
+const fmtIST=t=>{const s=new Date(t.getTime()+5.5*HR);return p2(s.getUTCHours())+':'+p2(s.getUTCMinutes())+' IST '+p2(s.getUTCDate())+' '+MON[s.getUTCMonth()];};
+const ARCHIVE=true;          // run list (latest + last 7 days); the fallback 'latest' mode is used only if no pinned run can be loaded
+let IC=null, mode='run', quiet=false, updating=false;   // mode 'run' = pinned 00/12 UTC run; 'latest' = fallback
+const setStatus=m=>{ if(quiet) return; statusEl.classList.remove('hide'); statusEl.textContent=m; };
+
+const coordQS=sub=>'latitude='+sub.map(f=>f.lat).join(',')+'&longitude='+sub.map(f=>f.lon).join(',');
+const runURL=(sub,ic,days)=>SINGLE+'?'+coordQS(sub)+'&hourly=precipitation&models='+MODEL+'&timezone=UTC&forecast_days='+(days||11)+'&run='+encodeURIComponent(isoUTC(ic));
+async function getJSON(url,tries=4){
+  for (let t=0;t<tries;t++){
+    const last=(t===tries-1);
+    let r;
+    try{ r=await fetch(url); }catch(e){ if(last) throw e; await sleep(2000*(t+1)); continue; }
+    if (r.ok){ const j=await r.json(); return Array.isArray(j)?j:[j]; }
+    let reason=''; try{ reason=(await r.json()).reason||''; }catch(e){}
+    if (r.status===429){
+      if (reason && !/minutely/i.test(reason)){ const err=new Error('Forecast service limit reached ('+reason+')'); err.status=429; throw err; }
+      if (!last){ setStatus('Forecast service rate limit reached, waiting a moment…'); await sleep(20000*(t+1)); }
+      continue;
+    }
+    if (r.status>=500){ if(!last) await sleep(2000*(t+1)); continue; }
+    const err=new Error('Forecast service returned '+r.status+(reason?': '+reason:'')); err.status=r.status; throw err;
+  }
+  const err=new Error('Forecast service is busy'); err.status=429; throw err;
+}
+// keep under the free limit (600 locations/min): at most 480 in any 60 s
+const sentLog=[];
+async function throttle(n){
+  for(;;){
+    const now=Date.now(); while(sentLog.length && sentLog[0].t<now-60e3) sentLog.shift();
+    const used=sentLog.reduce((a,x)=>a+x.n,0);
+    if (!sentLog.length || used+n<=480){ sentLog.push({t:now,n}); return; }
+    setStatus('Pacing requests to the forecast service…');
+    await sleep(Math.max(500,sentLog[0].t+60e3-now+250));
+  }
+}
+// Day n = rainfall accumulated over the n-th 24 h after the IC (hourly values are "preceding hour" sums)
+function dailyFromRun(r,ic){
+  const t=r.hourly.time, p=r.hourly.precipitation, i0=t.indexOf(isoUTC(ic));
+  if (i0<0) throw new Error('Run time not found in forecast data');
+  const out=[];
+  for (let d=0; d<DAYS; d++){
+    let s=0, ok=true;
+    for (let h=1; h<=24; h++){ const v=p[i0+24*d+h]; if (v==null){ ok=false; break; } s+=v; }
+    out.push(ok ? +s.toFixed(1) : null);
+  }
+  return out;
+}
+async function probe(ic){
+  try{
+    const r=await getJSON(runURL([feats[Math.floor(feats.length/2)]],ic,1),1);
+    return !!(r[0].hourly && r[0].hourly.precipitation && r[0].hourly.precipitation.some(v=>v!=null));
+  }catch(e){ return false; }
+}
+const latestBase=()=>Math.floor(Date.now()/(12*HR))*12*HR;       // latest 00/12 UTC boundary
+async function pickRun(){
+  for (let k=0;k<3;k++){ const ic=new Date(latestBase()-k*12*HR); if (await probe(ic)) return ic; }
+  return null;
+}
+async function metaIC(){
+  try{
+    const r=await fetch('https://api.open-meteo.com/data/'+MODEL+'/static/meta.json'); if(!r.ok) return null;
+    const j=await r.json(); return j.last_run_initialisation_time ? new Date(j.last_run_initialisation_time*1000) : null;
+  }catch(e){ return null; }
+}
+async function fetchAll(makeURL,onData){
+  const n=Math.ceil(feats.length/BATCH);
+  for (let i=0;i<n;i++){
+    setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
+    const sub=feats.slice(i*BATCH,(i+1)*BATCH), res=await getJSON(makeURL(sub));
+    res.forEach((r,j)=>onData(sub[j],r,i,j));
+  }
+}
+function pruneCache(){
+  try{
+    Object.keys(localStorage).filter(k=>k.startsWith('dr_')).forEach(k=>{
+      const t=Date.parse((k.split('_')[2]||'')+'Z');
+      if (k.startsWith('dr_v1') || !(t>Date.now()-8*24*HR)) localStorage.removeItem(k);
+    });
+  }catch(e){}
+}
+const PART={};                                   // partial results per run, so a retry only fetches what is missing
+const cellKey=f=>Math.round(f.lat*4)+','+Math.round(f.lon*4);   // IFS grid is 0.25°: districts in one cell share a value
+async function loadRun(ic,force){
+  if (SRV) return loadRunSrv(ic);
+  const id=isoUTC(ic), key='dr_v2_'+id+'_'+feats.length;
+  let c=null; if(!force){ try{ c=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){} }
+  if (c && c.rain.length===feats.length) feats.forEach((f,i)=>f.nxt=c.rain[i]);
+  else{
+    if (force) delete PART[id];
+    const P=PART[id]||(PART[id]={}), groups=new Map();
+    feats.forEach(f=>{ const k=cellKey(f); if(!groups.has(k)) groups.set(k,f); });
+    const todo=[...groups].filter(([k])=>!(k in P)), n=Math.ceil(todo.length/BATCH);
+    for (let i=0;i<n;i++){
+      const part=todo.slice(i*BATCH,(i+1)*BATCH), sub=part.map(x=>x[1]);
+      await throttle(sub.length);
+      setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
+      const res=await getJSON(runURL(sub,ic));
+      if (res.length!==sub.length) throw new Error('Unexpected response from the forecast service');
+      res.forEach((r,j)=>{ P[part[j][0]]=dailyFromRun(r,ic); });
+    }
+    feats.forEach(f=>{ f.nxt=P[cellKey(f)]; });
+    try{ pruneCache(); localStorage.setItem(key,JSON.stringify({rain:feats.map(f=>f.nxt)})); }catch(e){}
+    delete PART[id];
+  }
+  mode='run'; IC=ic;
+  feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
+}
+async function loadForecast(force){
+  setStatus('Finding latest ECMWF run…');
+  const ic=await pickRun();
+  if (ic) return loadRun(ic,force);
+  await fetchAll(sub=>LIVE+'?'+coordQS(sub)+'&daily=precipitation_sum&models='+MODEL+'&timezone=Asia%2FKolkata&forecast_days='+DAYS,
+    (f,r,i,j)=>{ f.nxt=r.daily.precipitation_sum.map(v=>v==null?null:+v); if(i===0&&j===0) times=r.daily.time; });
+  mode='latest'; IC=await metaIC();
+  feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
+}
+// Run list: latest 00/12 UTC run + the previous 7 days (14 runs, newest first)
+/* ---------- Server data: district maximum computed in the GitHub workflow from ECMWF open data ---------- */
+let SRV=false, srvList=[];
+async function loadManifest(){
+  try{
+    const r=await fetch('district/manifest.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return null;
+    const m=await r.json(), L=(m.runs||[]).map(x=>new Date(x.ic+':00Z')).filter(d=>!isNaN(d));
+    return L.length?L:null;
+  }catch(e){ return null; }
+}
+async function loadRunSrv(ic){
+  const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10);
+  const r=await fetch('district/'+tag+'.json?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error('run file not found ('+r.status+')');
+  const j=await r.json();
+  if(!j.max || j.max.length!==feats.length) throw new Error('run file does not match the district map');
+  feats.forEach((f,i)=>{ f.rain=j.max[i]; });
+  mode='run'; IC=ic;
+}
+let newestIC=null, follow=true, retryTimer=null, busy=0;      // busy: a load is in progress (never start a second one)
+function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
+function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
+async function openRun(ic,force){
+  busy++;
+  try{
+    if (quiet) setWarn('New ECMWF run '+fmtZY(ic)+' is available, loading it…'); else setStatus('Loading run '+fmtZY(ic)+'…');
+    await loadRun(ic,force);
+    const sel=document.getElementById('runsel'); if (sel.options && sel.options.length) sel.value=isoUTC(ic);
+    buildDays(); renderHeader(); setWarn(''); statusEl.classList.add('hide'); draw();
+    return true;
+  }catch(e){
+    const msg='Could not load run '+fmtZY(ic)+': '+e.message+'.';
+    if (quiet) setWarn(msg+' Still showing the previous run; retrying automatically.');
+    else{ statusEl.classList.remove('hide'); statusEl.textContent=msg; }
+    if (follow && newestIC && ic.getTime()===newestIC.getTime()) retrySoon();
+    return false;
+  }finally{ busy--; }
+}
+function buildRunList(newest){
+  newestIC=newest;
+  const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
+  const list=SRV?srvList:Array.from({length:14},(_,k)=>new Date(newest.getTime()-k*12*HR));
+  sel.innerHTML=list.map((t,k)=>'<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>').join('');
+  if (IC) sel.value=isoUTC(IC);
+  sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z'),false); };
+}
+async function bootArchive(){
+  busy++;
+  try{ await bootArchive_(); } finally{ busy--; }
+}
+async function bootArchive_(){
+  setStatus('Finding latest ECMWF run…');
+  const L=await loadManifest();
+  if (L){                                          // district maxima prepared by the workflow
+    SRV=true; srvList=L; follow=true; buildRunList(L[0]);
+    if (!(await openRun(L[0],false)) && L[1]){
+      if (await openRun(L[1],false)) setWarn('Latest run '+fmtZY(L[0])+' could not be loaded yet, showing the previous run. Retrying automatically.');
+    }
+    return;
+  }
+  const newest=await pickRun();
+  if (!newest){                                   // pinned runs unavailable: show the service's latest data instead
+    document.getElementById('runbar').hidden=true;
+    await loadForecast(false); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); return;
+  }
+  follow=true; buildRunList(newest);
+  if (!(await openRun(newest,false))){            // newest could not be loaded (e.g. rate limit): show the previous run meanwhile
+    const prev=new Date(newest.getTime()-12*HR);
+    if (await openRun(prev,false)) setWarn('Latest run '+fmtZY(newest)+' could not be loaded yet, showing the previous run. Retrying automatically.');
+  }
+}
+async function checkNew(){            // every 5 min: pick up a newly released 00/12 UTC run and keep retrying until it loads
+  if (updating || busy || !feats.length) return;
+  updating=true; quiet=true;                         // first look for workflow-prepared data (a small static file)
+  try{
+    const L=await loadManifest();
+    if (L){
+      const first=!SRV; SRV=true; srvList=L;
+      if (first || !newestIC || L[0]>newestIC){ if (first) follow=true; buildRunList(L[0]); if (follow) await openRun(L[0],false); }
+      else if (follow && (!IC || IC<newestIC)) await openRun(newestIC,false);
+      return;
+    }
+  }catch(e){} finally{ updating=false; quiet=false; }
+  if (SRV) return;
+  if (mode==='latest'){ updating=true; quiet=true; try{ if (await pickRun()) await bootArchive(); }catch(e){} finally{ updating=false; quiet=false; } return; }
+  const maybeNew = !newestIC || latestBase()>newestIC.getTime();
+  const behind   = follow && newestIC && (!IC || IC<newestIC);
+  if (!maybeNew && !behind) return;
+  updating=true; quiet=true;
+  try{
+    if (maybeNew){ const ic=await pickRun(); if (ic && (!newestIC || ic>newestIC)) buildRunList(ic); }
+    if (follow && newestIC && (!IC || IC<newestIC)) await openRun(newestIC,false);
+  }catch(e){} finally{ updating=false; quiet=false; }
+}
+setInterval(checkNew,5*60e3);
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew(); });
+
+/* ---------- UI ---------- */
+function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date(a.getTime()+24*HR)]; }
+function renderHeader(){
+  const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
+  if (mode==='run' && IC){
+    t.textContent='ECMWF IFS 0.25° · IC: '+fmtZY(IC);
+    s.textContent=(SRV?'Each district shows the highest forecast grid-point value inside it. ':'')+'Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date((newestIC||IC).getTime()+12*HR))+') appears automatically once ECMWF releases it. Earlier runs of the last 7 days are in the Run list.';
+  }else{
+    t.textContent='ECMWF IFS 0.25° · '+(IC?'latest run, IC: '+fmtZY(IC):'latest available run');
+    s.textContent='The 00/12 UTC run could not be pinned, so this shows the forecast service’s latest data by IST calendar day.';
+  }
+  if (SRV) document.getElementById('fn').textContent='Forecast: ECMWF IFS 0.25° open data. Each district shows the maximum of the forecast grid-point values (0.25°, about 28 km apart) that lie inside it; a district too small to contain a grid point uses the nearest one. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
+  winLine();
+}
+function winLine(){
+  const el=document.getElementById('win');
+  if (mode==='run' && IC){ const [a,b]=windowOf(dayIdx);
+    el.textContent='Day '+(dayIdx+1)+': rainfall from '+fmtZ(a)+' to '+fmtZ(b)+'  ('+fmtIST(a)+' → '+fmtIST(b)+')'; }
+  else el.textContent=times[dayIdx]?'IST day '+times[dayIdx]:'';
+}
+function buildDays(){
+  const box=document.getElementById('days'); box.innerHTML='';
+  const n=mode==='run'?DAYS:times.length; if (dayIdx>=n) dayIdx=0;
+  for (let i=0;i<n;i++){
+    const b=document.createElement('button'); b.setAttribute('aria-pressed',i===dayIdx);
+    if (mode==='run'){ const e=windowOf(i)[1];
+      b.innerHTML='Day '+(i+1)+'<small>to '+p2(e.getUTCDate())+' '+MON[e.getUTCMonth()]+' '+p2(e.getUTCHours())+'Z</small>'; }
+    else{ const d=new Date(times[i]+'T00:00:00');
+      b.innerHTML=d.toLocaleDateString('en-GB',{weekday:'short'})+'<small>'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</small>'; }
+    b.onclick=()=>{ dayIdx=i; [...box.children].forEach((c,k)=>c.setAttribute('aria-pressed',k===i)); winLine(); draw(); };
+    box.appendChild(b);
+  }
+}
+function buildLegend(){
+  document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
+    +'<span><i style="height:0;border:0;border-top:3px solid #111;width:18px"></i>IMD subdivision boundary</span>';
+}
+function local(e){
+  const r=cv.getBoundingClientRect();
+  return [(e.clientX-r.left)/r.width*view.cssW,(e.clientY-r.top)/r.height*view.cssH];
+}
+function at(e){
+  const [x,y]=local(e);
+  const lon=view.b[0]+((x-Z.tx)/Z.z)/(view.k*view.s), lat=view.b[3]-((y-Z.ty)/Z.z)/view.s;
+  return feats.find(f=>contains(f,lon,lat))||null;
+}
+function showTip(e){
+  if(!view) return;
+  const f=at(e);
+  if (f!==hover){ hover=f; draw(); }
+  if (!f){ tip.style.display='none'; return; }
+  const v=f.rain[dayIdx];
+  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span><br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]+(SRV?'<br><span style="opacity:.85">maximum over the district</span>':''));
+  tip.style.display='block';
+  tip.style.left=Math.min(e.clientX+14,innerWidth-230)+'px'; tip.style.top=(e.clientY+14)+'px';
+}
+const ptrs=new Map(); let pinch=null, travel=0;
+const pdist=()=>{const a=[...ptrs.values()]; return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);};
+const pmid=()=>{const a=[...ptrs.values()]; return [(a[0][0]+a[1][0])/2,(a[0][1]+a[1][1])/2];};
+cv.addEventListener('wheel',e=>{
+  if(!view) return; e.preventDefault();
+  const [x,y]=local(e); zoomAt(x,y,Z.z*Math.exp(-e.deltaY*0.0018));
+},{passive:false});
+cv.addEventListener('pointerdown',e=>{
+  if(!view) return;
+  cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,local(e)); travel=0;
+  pinch = ptrs.size===2 ? pdist() : null;
+});
+cv.addEventListener('pointermove',e=>{
+  if(!view) return;
+  if(!ptrs.has(e.pointerId)){ showTip(e); return; }      // mouse hover
+  const p=local(e), prev=ptrs.get(e.pointerId); ptrs.set(e.pointerId,p);
+  if(ptrs.size===2){
+    const d=pdist(), m=pmid();
+    if(pinch) zoomAt(m[0],m[1],Z.z*d/pinch);
+    pinch=d; travel=99; return;
+  }
+  travel+=Math.abs(p[0]-prev[0])+Math.abs(p[1]-prev[1]);
+  if(travel>6 && Z.z>1){ Z.tx+=p[0]-prev[0]; Z.ty+=p[1]-prev[1]; clampZ(); tip.style.display='none'; draw(); }
+});
+function endPtr(e){
+  const wasTap = ptrs.size===1 && travel<=6;
+  ptrs.delete(e.pointerId); pinch=null;
+  if (wasTap) showTip(e);
+}
+cv.addEventListener('pointerup',endPtr);
+cv.addEventListener('pointercancel',endPtr);
+cv.addEventListener('pointerleave',e=>{ if(!ptrs.size){hover=null;tip.style.display='none';draw();} });
+document.getElementById('zin').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z*1.6);
+document.getElementById('zout').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z/1.6);
+document.getElementById('zreset').onclick=()=>{Z.z=1;Z.tx=0;Z.ty=0;draw();};
+document.getElementById('lbl').onchange=e=>{showLabels=e.target.checked;draw();};
+document.getElementById('sdb').onchange=e=>{showSD=e.target.checked;draw();};
+document.getElementById('sdn').onchange=e=>{showSDN=e.target.checked;draw();};
+document.getElementById('png').onclick=()=>{
+  const d=view.dpr, top=Math.round(64*d), bot=Math.round(52*d), W=cv.width;
+  const o=document.createElement('canvas'); o.width=W; o.height=cv.height+top+bot;
+  const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
+  c.fillStyle='#14202b'; c.textBaseline='top';
+  c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
+  c.fillText((SRV?'District-wise 24-h rainfall forecast, district maximum (mm)':'District-wise 24-h rainfall forecast (mm)')+' · ECMWF IFS 0.25°',12*d,10*d);
+  c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
+  const sub = (mode==='run'&&IC) ? 'IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1])
+                                 : 'Latest available run   |   IST day '+(times[dayIdx]||'');
+  c.fillText(sub,12*d,38*d);
+  c.drawImage(cv,0,top);
+  let x=12*d, y=top+cv.height+8*d; c.font='500 '+Math.round(12*d)+'px system-ui,sans-serif';
+  for (const b of BINS){
+    const w=c.measureText(b.label).width+30*d;
+    if (x+w>W-8*d){ x=12*d; y+=18*d; }
+    c.fillStyle=b.color; c.fillRect(x,y,16*d,11*d); c.strokeStyle='#0004'; c.strokeRect(x,y,16*d,11*d);
+    c.fillStyle='#14202b'; c.fillText(b.label,x+22*d,y-1*d); x+=w+8*d;
+  }
+  const stamp=(mode==='run'&&IC)?'IC'+isoUTC(IC).replace(/[-:T]/g,'')+'_D'+(dayIdx+1):(times[dayIdx]||'latest');
+  o.toBlob(bl=>{const a=document.createElement('a'); a.href=URL.createObjectURL(bl);
+    a.download='district_rain_'+stamp+'.png'; a.click(); URL.revokeObjectURL(a.href);});
+};
+document.getElementById('refresh').onclick=async()=>{
+  if (mode==='run' && IC){ await openRun(IC,true); return; }
+  try{ await loadForecast(true); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
+  catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
+};
+addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
+
+/* ---------- Boot ---------- */
+(async function(){
+  try{
+    buildLegend();
+    const r=await fetch(GEO_URL);
+    if(!r.ok) throw new Error('Could not load '+GEO_URL+' ('+r.status+'). Add the district GeoJSON to your repo at that path.');
+    feats=prepare(await r.json());
+    if(!feats.length) throw new Error('No polygon features found in '+GEO_URL);
+    layout();
+    try{ const rs=await fetch('imd_subdivisions.json'); if(rs.ok){ SD=await rs.json();
+      document.getElementById('sdlbl').hidden=false; document.getElementById('sdnlbl').hidden=false; } }catch(e){}
+    await bootArchive();
+  }catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
+})();
+</script>
+</body>
+</html>
