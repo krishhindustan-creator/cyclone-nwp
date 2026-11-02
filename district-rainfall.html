@@ -79,7 +79,7 @@
     <label id="sdnlbl" hidden><input type="checkbox" id="sdn" checked> Subdivision names</label>
   </div>
 
-  <p class="note">
+  <p class="note" id="fn">
     Forecast: ECMWF IFS 0.25° (via Open-Meteo). Day n is the n-th 24 hours after the run’s initial condition (IC). Sampled at one point (centroid) per district, so a district’s value is
     a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.
   </p>
@@ -362,6 +362,7 @@ function pruneCache(){
 const PART={};                                   // partial results per run, so a retry only fetches what is missing
 const cellKey=f=>Math.round(f.lat*4)+','+Math.round(f.lon*4);   // IFS grid is 0.25°: districts in one cell share a value
 async function loadRun(ic,force){
+  if (SRV) return loadRunSrv(ic);
   const id=isoUTC(ic), key='dr_v2_'+id+'_'+feats.length;
   let c=null; if(!force){ try{ c=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){} }
   if (c && c.rain.length===feats.length) feats.forEach((f,i)=>f.nxt=c.rain[i]);
@@ -395,6 +396,24 @@ async function loadForecast(force){
   feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
 }
 // Run list: latest 00/12 UTC run + the previous 7 days (14 runs, newest first)
+/* ---------- Server data: district maximum computed in the GitHub workflow from ECMWF open data ---------- */
+let SRV=false, srvList=[];
+async function loadManifest(){
+  try{
+    const r=await fetch('district/manifest.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return null;
+    const m=await r.json(), L=(m.runs||[]).map(x=>new Date(x.ic+':00Z')).filter(d=>!isNaN(d));
+    return L.length?L:null;
+  }catch(e){ return null; }
+}
+async function loadRunSrv(ic){
+  const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10);
+  const r=await fetch('district/'+tag+'.json?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error('run file not found ('+r.status+')');
+  const j=await r.json();
+  if(!j.max || j.max.length!==feats.length) throw new Error('run file does not match the district map');
+  feats.forEach((f,i)=>{ f.rain=j.max[i]; });
+  mode='run'; IC=ic;
+}
 let newestIC=null, follow=true, retryTimer=null, busy=0;      // busy: a load is in progress (never start a second one)
 function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
 function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
@@ -417,8 +436,8 @@ async function openRun(ic,force){
 function buildRunList(newest){
   newestIC=newest;
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
-  sel.innerHTML=Array.from({length:14},(_,k)=>{ const t=new Date(newest.getTime()-k*12*HR);
-    return '<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>'; }).join('');
+  const list=SRV?srvList:Array.from({length:14},(_,k)=>new Date(newest.getTime()-k*12*HR));
+  sel.innerHTML=list.map((t,k)=>'<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>').join('');
   if (IC) sel.value=isoUTC(IC);
   sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z'),false); };
 }
@@ -428,6 +447,14 @@ async function bootArchive(){
 }
 async function bootArchive_(){
   setStatus('Finding latest ECMWF run…');
+  const L=await loadManifest();
+  if (L){                                          // district maxima prepared by the workflow
+    SRV=true; srvList=L; follow=true; buildRunList(L[0]);
+    if (!(await openRun(L[0],false)) && L[1]){
+      if (await openRun(L[1],false)) setWarn('Latest run '+fmtZY(L[0])+' could not be loaded yet, showing the previous run. Retrying automatically.');
+    }
+    return;
+  }
   const newest=await pickRun();
   if (!newest){                                   // pinned runs unavailable: show the service's latest data instead
     document.getElementById('runbar').hidden=true;
@@ -441,6 +468,17 @@ async function bootArchive_(){
 }
 async function checkNew(){            // every 5 min: pick up a newly released 00/12 UTC run and keep retrying until it loads
   if (updating || busy || !feats.length) return;
+  updating=true; quiet=true;                         // first look for workflow-prepared data (a small static file)
+  try{
+    const L=await loadManifest();
+    if (L){
+      const first=!SRV; SRV=true; srvList=L;
+      if (first || !newestIC || L[0]>newestIC){ if (first) follow=true; buildRunList(L[0]); if (follow) await openRun(L[0],false); }
+      else if (follow && (!IC || IC<newestIC)) await openRun(newestIC,false);
+      return;
+    }
+  }catch(e){} finally{ updating=false; quiet=false; }
+  if (SRV) return;
   if (mode==='latest'){ updating=true; quiet=true; try{ if (await pickRun()) await bootArchive(); }catch(e){} finally{ updating=false; quiet=false; } return; }
   const maybeNew = !newestIC || latestBase()>newestIC.getTime();
   const behind   = follow && newestIC && (!IC || IC<newestIC);
@@ -460,11 +498,12 @@ function renderHeader(){
   const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
   if (mode==='run' && IC){
     t.textContent='ECMWF IFS 0.25° · IC: '+fmtZY(IC);
-    s.textContent='Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date((newestIC||IC).getTime()+12*HR))+') appears automatically once ECMWF releases it. Earlier runs of the last 7 days are in the Run list.';
+    s.textContent=(SRV?'Each district shows the highest forecast grid-point value inside it. ':'')+'Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date((newestIC||IC).getTime()+12*HR))+') appears automatically once ECMWF releases it. Earlier runs of the last 7 days are in the Run list.';
   }else{
     t.textContent='ECMWF IFS 0.25° · '+(IC?'latest run, IC: '+fmtZY(IC):'latest available run');
     s.textContent='The 00/12 UTC run could not be pinned, so this shows the forecast service’s latest data by IST calendar day.';
   }
+  if (SRV) document.getElementById('fn').textContent='Forecast: ECMWF IFS 0.25° open data. Each district shows the maximum of the forecast grid-point values (0.25°, about 28 km apart) that lie inside it; a district too small to contain a grid point uses the nearest one. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
   winLine();
 }
 function winLine(){
@@ -505,7 +544,7 @@ function showTip(e){
   if (f!==hover){ hover=f; draw(); }
   if (!f){ tip.style.display='none'; return; }
   const v=f.rain[dayIdx];
-  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span><br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]);
+  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span><br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]+(SRV?'<br><span style="opacity:.85">maximum over the district</span>':''));
   tip.style.display='block';
   tip.style.left=Math.min(e.clientX+14,innerWidth-230)+'px'; tip.style.top=(e.clientY+14)+'px';
 }
@@ -553,7 +592,7 @@ document.getElementById('png').onclick=()=>{
   const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
   c.fillStyle='#14202b'; c.textBaseline='top';
   c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
-  c.fillText('District-wise 24-h rainfall forecast (mm) · ECMWF IFS 0.25°',12*d,10*d);
+  c.fillText((SRV?'District-wise 24-h rainfall forecast, district maximum (mm)':'District-wise 24-h rainfall forecast (mm)')+' · ECMWF IFS 0.25°',12*d,10*d);
   c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
   const sub = (mode==='run'&&IC) ? 'IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1])
                                  : 'Latest available run   |   IST day '+(times[dayIdx]||'');
