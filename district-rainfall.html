@@ -75,11 +75,13 @@
     <button id="png">Save map as PNG</button>
     <button id="refresh">Refresh forecast</button>
     <label><input type="checkbox" id="lbl" checked> Show district names and values when zoomed in</label>
+    <label id="sdlbl" hidden><input type="checkbox" id="sdb" checked> IMD subdivision boundaries</label>
+    <label id="sdnlbl" hidden><input type="checkbox" id="sdn" checked> Subdivision names</label>
   </div>
 
   <p class="note">
     Forecast: ECMWF IFS 0.25° (via Open-Meteo). Day n is the n-th 24 hours after the run’s initial condition (IC). Sampled at one point (centroid) per district, so a district’s value is
-    a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Not an official IMD product.
+    a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.
   </p>
 </div>
 <div id="tip"></div>
@@ -114,6 +116,7 @@ const statusEl = document.getElementById('status'), tip = document.getElementByI
 let feats = [];          // {name,state,polys,bbox,lat,lon,rain:[]}
 let times = [];          // ISO dates
 let dayIdx = 0, hover = null, view = null;
+let SD = null, showSD = true, showSDN = true;     // IMD subdivision overlay (imd_subdivisions.json)
 const Z = {z:1, tx:0, ty:0};
 const MAXZ = 14;
 let showLabels = true;
@@ -146,7 +149,7 @@ function prepare(geo){
     const c = ringCentroid(big[0]) || [(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
     out.push({
       name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS),
-      polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
+      sd: pick(f.properties||{},['sd']), polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
     });
   }
   return out;
@@ -216,10 +219,40 @@ function draw(){
     ctx.strokeStyle='rgba(20,32,43,.4)'; ctx.lineWidth=Math.min(1.2,.4+Z.z*.06); ctx.stroke();
   }
   if (hover){ path(hover); ctx.strokeStyle='#000'; ctx.lineWidth=1.6; ctx.stroke(); }
-  if (showLabels && Z.z>=1.5) drawLabels();
-}
-function drawLabels(){
+  if (SD && showSD) drawSDLines();
   const placed=[];
+  if (SD && showSD && showSDN) drawSDLabels(placed);
+  if (showLabels && Z.z>=1.5) drawLabels(placed);
+}
+function drawSDLines(){
+  ctx.save(); ctx.strokeStyle='#111'; ctx.lineWidth=Math.min(2.8,1.7+Z.z*.08); ctx.lineJoin='round'; ctx.lineCap='round';
+  ctx.beginPath();
+  for (const ln of SD.lines){
+    for (let i=0;i<ln.length;i++){ const [X,Y]=px(ln[i][0],ln[i][1]); if(i) ctx.lineTo(X,Y); else ctx.moveTo(X,Y); }
+  }
+  ctx.stroke(); ctx.restore();
+}
+function drawSDLabels(placed){
+  ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+  ctx.font='700 '+Math.round(Math.min(15,11+Z.z*.6))+'px system-ui,-apple-system,"Segoe UI",sans-serif';
+  const W=view.cssW, Hh=view.cssH, cx=W/2, cy=Hh/2, vis=(x,y)=>x>=8&&y>=8&&x<=W-8&&y<=Hh-8;
+  for (const lb of SD.labels){                         // largest subdivisions first
+    let [x,y]=px(lb.lon,lb.lat);
+    if (!vis(x,y)){                                    // zoomed in: put the name on a visible part of the subdivision
+      let best=null, bd=1e18;
+      for (const q of lb.pts){ const [X,Y]=px(q[0],q[1]); if(!vis(X,Y)) continue; const d=(X-cx)**2+(Y-cy)**2; if(d<bd){bd=d;best=[X,Y];} }
+      if (!best) continue; [x,y]=best;
+    }
+    const w=ctx.measureText(lb.n).width+6, h=16, r=[x-w/2,y-h/2,x+w/2,y+h/2];
+    if (placed.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3]))) continue;
+    placed.push(r);
+    ctx.lineWidth=3.5; ctx.strokeStyle='rgba(255,255,255,.93)'; ctx.fillStyle='#000';
+    ctx.strokeText(lb.n,x,y); ctx.fillText(lb.n,x,y);
+  }
+  ctx.restore();
+}
+function drawLabels(placed){
+  placed=placed||[];
   ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
   ctx.font='600 11px system-ui,-apple-system,"Segoe UI",sans-serif';
   const list=feats.filter(visible).sort((a,b)=>b.area-a.area);
@@ -342,6 +375,7 @@ async function loadRun(ic,force){
       await throttle(sub.length);
       setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
       const res=await getJSON(runURL(sub,ic));
+      if (res.length!==sub.length) throw new Error('Unexpected response from the forecast service');
       res.forEach((r,j)=>{ P[part[j][0]]=dailyFromRun(r,ic); });
     }
     feats.forEach(f=>{ f.nxt=P[cellKey(f)]; });
@@ -361,10 +395,11 @@ async function loadForecast(force){
   feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
 }
 // Run list: latest 00/12 UTC run + the previous 7 days (14 runs, newest first)
-let newestIC=null, follow=true, retryTimer=null;
+let newestIC=null, follow=true, retryTimer=null, busy=0;      // busy: a load is in progress (never start a second one)
 function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
 function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
 async function openRun(ic,force){
+  busy++;
   try{
     if (quiet) setWarn('New ECMWF run '+fmtZY(ic)+' is available, loading it…'); else setStatus('Loading run '+fmtZY(ic)+'…');
     await loadRun(ic,force);
@@ -377,7 +412,7 @@ async function openRun(ic,force){
     else{ statusEl.classList.remove('hide'); statusEl.textContent=msg; }
     if (follow && newestIC && ic.getTime()===newestIC.getTime()) retrySoon();
     return false;
-  }
+  }finally{ busy--; }
 }
 function buildRunList(newest){
   newestIC=newest;
@@ -388,6 +423,10 @@ function buildRunList(newest){
   sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z'),false); };
 }
 async function bootArchive(){
+  busy++;
+  try{ await bootArchive_(); } finally{ busy--; }
+}
+async function bootArchive_(){
   setStatus('Finding latest ECMWF run…');
   const newest=await pickRun();
   if (!newest){                                   // pinned runs unavailable: show the service's latest data instead
@@ -401,7 +440,7 @@ async function bootArchive(){
   }
 }
 async function checkNew(){            // every 5 min: pick up a newly released 00/12 UTC run and keep retrying until it loads
-  if (updating || !feats.length) return;
+  if (updating || busy || !feats.length) return;
   if (mode==='latest'){ updating=true; quiet=true; try{ if (await pickRun()) await bootArchive(); }catch(e){} finally{ updating=false; quiet=false; } return; }
   const maybeNew = !newestIC || latestBase()>newestIC.getTime();
   const behind   = follow && newestIC && (!IC || IC<newestIC);
@@ -448,7 +487,8 @@ function buildDays(){
   }
 }
 function buildLegend(){
-  document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('');
+  document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
+    +'<span><i style="height:0;border:0;border-top:3px solid #111;width:18px"></i>IMD subdivision boundary</span>';
 }
 function local(e){
   const r=cv.getBoundingClientRect();
@@ -465,7 +505,7 @@ function showTip(e){
   if (f!==hover){ hover=f; draw(); }
   if (!f){ tip.style.display='none'; return; }
   const v=f.rain[dayIdx];
-  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]);
+  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span><br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]);
   tip.style.display='block';
   tip.style.left=Math.min(e.clientX+14,innerWidth-230)+'px'; tip.style.top=(e.clientY+14)+'px';
 }
@@ -505,6 +545,8 @@ document.getElementById('zin').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z*1.
 document.getElementById('zout').onclick=()=>zoomAt(view.cssW/2,view.cssH/2,Z.z/1.6);
 document.getElementById('zreset').onclick=()=>{Z.z=1;Z.tx=0;Z.ty=0;draw();};
 document.getElementById('lbl').onchange=e=>{showLabels=e.target.checked;draw();};
+document.getElementById('sdb').onchange=e=>{showSD=e.target.checked;draw();};
+document.getElementById('sdn').onchange=e=>{showSDN=e.target.checked;draw();};
 document.getElementById('png').onclick=()=>{
   const d=view.dpr, top=Math.round(64*d), bot=Math.round(52*d), W=cv.width;
   const o=document.createElement('canvas'); o.width=W; o.height=cv.height+top+bot;
@@ -544,6 +586,8 @@ addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
     feats=prepare(await r.json());
     if(!feats.length) throw new Error('No polygon features found in '+GEO_URL);
     layout();
+    try{ const rs=await fetch('imd_subdivisions.json'); if(rs.ok){ SD=await rs.json();
+      document.getElementById('sdlbl').hidden=false; document.getElementById('sdnlbl').hidden=false; } }catch(e){}
     await bootArchive();
   }catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
 })();
