@@ -40,6 +40,7 @@
   .icbar{background:var(--accent);color:#fff;border-radius:8px;padding:10px 14px;margin:0 0 10px}
   .ic{font-size:1.2rem;font-weight:700}
   .icsub{font-size:.82rem;opacity:.93;margin-top:2px}
+  .icwarn{margin-top:6px;background:rgba(255,255,255,.2);border-radius:5px;padding:4px 8px;font-size:.82rem}
   .sub{font-weight:600;color:var(--ink)}
   [hidden]{display:none!important}
   .runbar{display:flex;gap:8px;align-items:center;margin:0 0 10px;font-size:.9rem}
@@ -52,6 +53,7 @@
   <div class="icbar">
     <div class="ic" id="ictxt">ECMWF IFS 0.25° · finding latest run…</div>
     <div class="icsub" id="icsub">24-hour district rainfall forecast</div>
+    <div class="icwarn" id="icwarn" hidden></div>
   </div>
   <p class="sub" id="win"></p>
   <div class="runbar" id="runbar" hidden><label for="runsel">Run (IC):</label><select id="runsel"></select></div>
@@ -88,7 +90,7 @@
 const GEO_URL = 'india_districts.geojson';
 const MODEL = 'ecmwf_ifs025';
 const DAYS = 10;
-const BATCH = 100;               // districts per API request
+const BATCH = 80;                // forecast points per API request
 const CACHE_HOURS = 3;
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
@@ -251,15 +253,33 @@ const setStatus=m=>{ if(quiet) return; statusEl.classList.remove('hide'); status
 
 const coordQS=sub=>'latitude='+sub.map(f=>f.lat).join(',')+'&longitude='+sub.map(f=>f.lon).join(',');
 const runURL=(sub,ic,days)=>SINGLE+'?'+coordQS(sub)+'&hourly=precipitation&models='+MODEL+'&timezone=UTC&forecast_days='+(days||11)+'&run='+encodeURIComponent(isoUTC(ic));
-async function getJSON(url,tries=3){
+async function getJSON(url,tries=4){
   for (let t=0;t<tries;t++){
+    const last=(t===tries-1);
     let r;
-    try{ r=await fetch(url); }catch(e){ if(t===tries-1) throw e; await sleep(1500*(t+1)); continue; }
+    try{ r=await fetch(url); }catch(e){ if(last) throw e; await sleep(2000*(t+1)); continue; }
     if (r.ok){ const j=await r.json(); return Array.isArray(j)?j:[j]; }
-    if (r.status===429 || r.status>=500){ await sleep(1500*(t+1)); continue; }
-    const err=new Error('Forecast service returned '+r.status); err.status=r.status; throw err;
+    let reason=''; try{ reason=(await r.json()).reason||''; }catch(e){}
+    if (r.status===429){
+      if (reason && !/minutely/i.test(reason)){ const err=new Error('Forecast service limit reached ('+reason+')'); err.status=429; throw err; }
+      if (!last){ setStatus('Forecast service rate limit reached, waiting a moment…'); await sleep(20000*(t+1)); }
+      continue;
+    }
+    if (r.status>=500){ if(!last) await sleep(2000*(t+1)); continue; }
+    const err=new Error('Forecast service returned '+r.status+(reason?': '+reason:'')); err.status=r.status; throw err;
   }
-  const err=new Error('Forecast service is busy. Try again in a minute.'); err.status=429; throw err;
+  const err=new Error('Forecast service is busy'); err.status=429; throw err;
+}
+// keep under the free limit (600 locations/min): at most 480 in any 60 s
+const sentLog=[];
+async function throttle(n){
+  for(;;){
+    const now=Date.now(); while(sentLog.length && sentLog[0].t<now-60e3) sentLog.shift();
+    const used=sentLog.reduce((a,x)=>a+x.n,0);
+    if (!sentLog.length || used+n<=480){ sentLog.push({t:now,n}); return; }
+    setStatus('Pacing requests to the forecast service…');
+    await sleep(Math.max(500,sentLog[0].t+60e3-now+250));
+  }
 }
 // Day n = rainfall accumulated over the n-th 24 h after the IC (hourly values are "preceding hour" sums)
 function dailyFromRun(r,ic){
@@ -306,13 +326,27 @@ function pruneCache(){
     });
   }catch(e){}
 }
+const PART={};                                   // partial results per run, so a retry only fetches what is missing
+const cellKey=f=>Math.round(f.lat*4)+','+Math.round(f.lon*4);   // IFS grid is 0.25°: districts in one cell share a value
 async function loadRun(ic,force){
-  const key='dr_v2_'+isoUTC(ic)+'_'+feats.length;
+  const id=isoUTC(ic), key='dr_v2_'+id+'_'+feats.length;
   let c=null; if(!force){ try{ c=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){} }
   if (c && c.rain.length===feats.length) feats.forEach((f,i)=>f.nxt=c.rain[i]);
   else{
-    await fetchAll(sub=>runURL(sub,ic),(f,r)=>{ f.nxt=dailyFromRun(r,ic); });
+    if (force) delete PART[id];
+    const P=PART[id]||(PART[id]={}), groups=new Map();
+    feats.forEach(f=>{ const k=cellKey(f); if(!groups.has(k)) groups.set(k,f); });
+    const todo=[...groups].filter(([k])=>!(k in P)), n=Math.ceil(todo.length/BATCH);
+    for (let i=0;i<n;i++){
+      const part=todo.slice(i*BATCH,(i+1)*BATCH), sub=part.map(x=>x[1]);
+      await throttle(sub.length);
+      setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
+      const res=await getJSON(runURL(sub,ic));
+      res.forEach((r,j)=>{ P[part[j][0]]=dailyFromRun(r,ic); });
+    }
+    feats.forEach(f=>{ f.nxt=P[cellKey(f)]; });
     try{ pruneCache(); localStorage.setItem(key,JSON.stringify({rain:feats.map(f=>f.nxt)})); }catch(e){}
+    delete PART[id];
   }
   mode='run'; IC=ic;
   feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
@@ -326,19 +360,32 @@ async function loadForecast(force){
   mode='latest'; IC=await metaIC();
   feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
 }
-// Archive: any 00/12 UTC run of the last 7 days (14 runs, newest first)
+// Run list: latest 00/12 UTC run + the previous 7 days (14 runs, newest first)
+let newestIC=null, follow=true, retryTimer=null;
+function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
+function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
 async function openRun(ic,force){
-  try{ setStatus('Loading run '+fmtZY(ic)+'…'); await loadRun(ic,force); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
-  catch(e){ statusEl.classList.remove('hide'); statusEl.textContent='Could not load run '+fmtZY(ic)+': '+e.message; }
+  try{
+    if (quiet) setWarn('New ECMWF run '+fmtZY(ic)+' is available, loading it…'); else setStatus('Loading run '+fmtZY(ic)+'…');
+    await loadRun(ic,force);
+    const sel=document.getElementById('runsel'); if (sel.options && sel.options.length) sel.value=isoUTC(ic);
+    buildDays(); renderHeader(); setWarn(''); statusEl.classList.add('hide'); draw();
+    return true;
+  }catch(e){
+    const msg='Could not load run '+fmtZY(ic)+': '+e.message+'.';
+    if (quiet) setWarn(msg+' Still showing the previous run; retrying automatically.');
+    else{ statusEl.classList.remove('hide'); statusEl.textContent=msg; }
+    if (follow && newestIC && ic.getTime()===newestIC.getTime()) retrySoon();
+    return false;
+  }
 }
-let newestIC=null;
 function buildRunList(newest){
   newestIC=newest;
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
   sel.innerHTML=Array.from({length:14},(_,k)=>{ const t=new Date(newest.getTime()-k*12*HR);
     return '<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>'; }).join('');
   if (IC) sel.value=isoUTC(IC);
-  sel.onchange=()=>openRun(new Date(sel.value+':00Z'),false);
+  sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z'),false); };
 }
 async function bootArchive(){
   setStatus('Finding latest ECMWF run…');
@@ -347,26 +394,25 @@ async function bootArchive(){
     document.getElementById('runbar').hidden=true;
     await loadForecast(false); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); return;
   }
-  buildRunList(newest);
-  await openRun(newest,false);
+  follow=true; buildRunList(newest);
+  if (!(await openRun(newest,false))){            // newest could not be loaded (e.g. rate limit): show the previous run meanwhile
+    const prev=new Date(newest.getTime()-12*HR);
+    if (await openRun(prev,false)) setWarn('Latest run '+fmtZY(newest)+' could not be loaded yet, showing the previous run. Retrying automatically.');
+  }
 }
-async function checkNew(){            // every 15 min: when ECMWF releases the next 00/12 UTC run, add it and switch to it if you were on the latest
+async function checkNew(){            // every 5 min: pick up a newly released 00/12 UTC run and keep retrying until it loads
   if (updating || !feats.length) return;
-  if (mode==='run' && newestIC && latestBase()<=newestIC.getTime()) return;
+  if (mode==='latest'){ updating=true; quiet=true; try{ if (await pickRun()) await bootArchive(); }catch(e){} finally{ updating=false; quiet=false; } return; }
+  const maybeNew = !newestIC || latestBase()>newestIC.getTime();
+  const behind   = follow && newestIC && (!IC || IC<newestIC);
+  if (!maybeNew && !behind) return;
   updating=true; quiet=true;
   try{
-    if (mode==='latest'){ if (await pickRun()) await bootArchive(); }
-    else{
-      const ic=await pickRun();
-      if (ic && ic>newestIC){
-        const wasLatest=IC && IC.getTime()===newestIC.getTime();
-        if (wasLatest) await openRun(ic,false);
-        buildRunList(ic);
-      }
-    }
+    if (maybeNew){ const ic=await pickRun(); if (ic && (!newestIC || ic>newestIC)) buildRunList(ic); }
+    if (follow && newestIC && (!IC || IC<newestIC)) await openRun(newestIC,false);
   }catch(e){} finally{ updating=false; quiet=false; }
 }
-setInterval(checkNew,15*60e3);
+setInterval(checkNew,5*60e3);
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew(); });
 
 /* ---------- UI ---------- */
