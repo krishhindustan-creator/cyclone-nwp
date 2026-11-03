@@ -137,7 +137,10 @@ const MODELS = {
   AIGFS: {name:'NOAA AIGFS', grid:'0.25°, AI model'},
   ICON:  {name:'DWD ICON',   grid:'~13 km, to day 7'},
   GDPS:  {name:'CMC GDPS',   grid:'0.15°'},
-  ARPEGE:{name:'Météo-France ARPEGE', grid:'0.25°, to day 4'}
+  ARPEGE:{name:'Météo-France ARPEGE', grid:'0.25°, to day 4'},
+  IMDGFS:{name:'IMD GFS', grid:'0.125°, to day 5'},
+  NCUMG: {name:'NCUM-G',  grid:'0.18° × 0.12°'},
+  NCUMR: {name:'NCUM-R',  grid:'regional'}
 };
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
@@ -477,7 +480,7 @@ function renderHeader(){
   if (miss.length) notes.push((old?'Not available for this run: ':'Not yet available for this run: ')+miss.map(mName).join(', ')+(old?'.':'. Added automatically when released.'));
   setWarn(notes.join(' '));
   document.getElementById('fn').textContent='Forecast: '+runModels.map(k=>mName(k)+' ('+((MODELS[k]||{}).grid||'')+')').join(', ')
-    +', all from the producers’ open data. A model whose run for this IC is not out yet is taken from its latest earlier run (up to '+LAG_MAX_H+' h older), for the same 24-h windows, and its run is shown in brackets, e.g. ECMWF IFS (12Z). For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
+    +', from the producers’ open data (IMD GFS and NCUM from IMD’s NWP server). A model whose run for this IC is not out yet is taken from its latest earlier run (up to '+LAG_MAX_H+' h older), for the same 24-h windows, and its run is shown in brackets, e.g. ECMWF IFS (12Z). For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
     +'MME = simple (equal-weight) average of these district values. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. '
     +'Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
   winLine();

@@ -10,6 +10,10 @@ Models (only the 00 and 12 UTC runs are used; 06/18 UTC runs are never fetched):
     GDPS   CMC GDPS 0.15 deg (~15 km)      MSC Datamart               days 1-10
     AIGFS  NOAA AIGFS 0.25 deg (AI model)  NOAA open data (AWS)       days 1-10
     ARPEGE Meteo-France ARPEGE 0.25 deg    Meteo-France open data     days 1-4 (runs end at 102 h)
+    IMDGFS IMD GFS 0.125 deg               IMD SFTP (dr_krishna)      days 1-5 (file ends at 120 h)
+    NCUMG  NCMRWF NCUM-G 0.18x0.12 deg     IMD SFTP (dr_krishna)      days 1-10
+    NCUMR  NCMRWF NCUM-R regional          IMD SFTP (dr_krishna)      as far as the file goes
+    (IMD models need IMD_PWD, the password of the imdnwp SFTP login)
 Choose the models with the environment variable MODELS (default "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE").
 
 For every district of india_districts.geojson and every model, the value is the MAXIMUM of the model's grid-point
@@ -45,7 +49,7 @@ KEEP_DAYS = float(os.environ.get("KEEP_DAYS", "7"))
 TRY_HOURS = float(os.environ.get("TRY_HOURS", "60"))
 FORCE = os.environ.get("FORCE", "") not in ("", "0", "false", "False")
 RUN_ID = os.environ.get("RUN_ID", "").strip()
-MODELS = [m.strip().upper() for m in os.environ.get("MODELS", "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE").split(",") if m.strip()]
+MODELS = [m.strip().upper() for m in os.environ.get("MODELS", "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE,IMDGFS,NCUMG,NCUMR").split(",") if m.strip()]
 DAYS = 10
 MIN_AGE_H = 3             # no model has a run out earlier than this
 OUT = os.path.join(SITE, "district")
@@ -330,12 +334,90 @@ def get_arpege(ic):
     return field_regular(msgs, ARPEGE_DAYS, "ARPEGE")
 
 
+# ---- IMD models: rain files in IMD's SFTP folder nwp_data/gfs_rimes/dr_krishna/YYYYMMDDHH (login imdnwp, IMD_PWD)
+IMD_HOST, IMD_USER = "sftp.nwp.imd.gov.in", "imdnwp"
+IMD_DIR = "nwp_data/gfs_rimes/dr_krishna/%s"
+IMD_FILE = {"IMDGFS": "gfs_apcp_%s.grib", "NCUMG": "um_apcp_%s.grib", "NCUMR": "umreg_apcp_%s.grib"}
+IMD_LOCAL = os.environ.get("IMD_LOCAL", "")      # testing: a local folder holding the same files
+_imd = {}
+
+
+def _imd_sftp():
+    if "c" not in _imd:
+        pw = os.environ.get("IMD_PWD", "")
+        if not pw:
+            raise RuntimeError("IMD_PWD not set")
+        import paramiko
+        tr = paramiko.Transport((IMD_HOST, 22)); tr.banner_timeout = 60
+        tr.connect(username=IMD_USER, password=pw)
+        c = paramiko.SFTPClient.from_transport(tr); c.get_channel().settimeout(120)
+        _imd.update(c=c, t=tr)
+    return _imd["c"]
+
+
+def _imd_file(name, ic):
+    tag = ic.strftime("%Y%m%d%H"); fn = IMD_FILE[name] % tag
+    if IMD_LOCAL:
+        return os.path.join(IMD_LOCAL, fn)
+    if _imd.get("down"):
+        raise RuntimeError("IMD server not reachable in this run")
+    try:
+        c = _imd_sftp()
+    except Exception as e:
+        _imd["down"] = True
+        raise RuntimeError("IMD login failed: %s" % e)
+    rem = (IMD_DIR % tag) + "/" + fn
+    try:
+        st = c.stat(rem)
+    except IOError:
+        raise RuntimeError("not available (yet): " + fn)
+    if time.time() - st.st_mtime < 300:        # still being written
+        raise RuntimeError("being written: " + fn)
+    loc = os.path.join(WORK, fn)
+    t0 = time.time(); c.get(rem, loc + ".part")
+    if os.path.getsize(loc + ".part") != st.st_size:
+        raise RuntimeError("incomplete download: " + fn)
+    os.replace(loc + ".part", loc)
+    print("    %s: %.0f MB in %.0f s" % (fn, st.st_size / 1e6, time.time() - t0), flush=True)
+    return loc
+
+
+def get_imd(name, ic):
+    path = _imd_file(name, ic)
+    try:
+        msgs = read_msgs(path)
+    finally:
+        if not IMD_LOCAL and os.path.exists(path):
+            os.remove(path)
+    if not msgs:
+        raise RuntimeError("no fields in the file")
+    for m in msgs:                              # IMD's NCUM code is not in the ecCodes tables; values are mm
+        if str(m["units"]).lower() in ("unknown", "kg m-2 s-1"):
+            m["units"] = "kg m**-2"
+    acc = {}
+    if all(m["start"] == 0 for m in msgs):       # totals from the IC
+        for m in msgs:
+            acc[(0, m["end"])] = to_mm(m)
+        last = max(m["end"] for m in msgs)
+    else:                                        # consecutive buckets (1 h or 3 h): add them up from the IC
+        cum, last = 0, 0
+        for m in sorted(msgs, key=lambda m: (m["start"], m["end"])):
+            if m["start"] != last:
+                raise RuntimeError("gap in the rainfall steps at +%d h" % last)
+            cum = cum + to_mm(m); last = m["end"]; acc[(0, last)] = cum
+    lat, lon = regular_latlon(msgs[0])
+    return Field(lat, lon, acc, min(DAYS, last // 24), name)
+
+
 FETCH = {"IFS": get_ifs, "AIFS": get_aifs, "GFS": get_gfs, "AIGFS": get_aigfs, "ICON": get_icon, "GDPS": get_gdps,
-         "ARPEGE": get_arpege}
+         "ARPEGE": get_arpege, "IMDGFS": lambda ic: get_imd("IMDGFS", ic),
+         "NCUMG": lambda ic: get_imd("NCUMG", ic), "NCUMR": lambda ic: get_imd("NCUMR", ic)}
 INFO = {"IFS": "ECMWF IFS HRES 0.25 deg (ECMWF open data)", "AIFS": "ECMWF AIFS Single 0.25 deg (ECMWF open data)",
         "GFS": "NCEP GFS 0.25 deg (NOAA open data)", "ICON": "DWD ICON global ~13 km native grid (DWD open data), days 1-7",
         "GDPS": "CMC GDPS 0.15 deg (MSC Datamart)", "AIGFS": "NOAA AIGFS 0.25 deg (NOAA open data)",
-        "ARPEGE": "Meteo-France ARPEGE 0.25 deg (Meteo-France open data), days 1-4"}
+        "ARPEGE": "Meteo-France ARPEGE 0.25 deg (Meteo-France open data), days 1-4",
+        "IMDGFS": "IMD GFS 0.125 deg (IMD SFTP), days 1-5", "NCUMG": "NCMRWF NCUM-G (IMD SFTP)",
+        "NCUMR": "NCMRWF NCUM-R regional (IMD SFTP)"}
 
 
 # ------------------------------------------------------------------ geometry
