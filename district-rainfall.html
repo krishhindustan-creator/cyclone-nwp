@@ -295,8 +295,14 @@ const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMon
 const fmtZY=t=>fmtZ(t)+' '+t.getUTCFullYear();
 const fmtIST=t=>{const s=new Date(t.getTime()+5.5*HR);return p2(s.getUTCHours())+':'+p2(s.getUTCMinutes())+' IST '+p2(s.getUTCDate())+' '+MON[s.getUTCMonth()];};
 const mName=k=>(MODELS[k]||{name:k}).name;
-let IC=null, runModels=[], product='MME', quiet=false, updating=false;
-let srvList=[], srvModels={}, wanted=[], newestIC=null, follow=true, retryTimer=null, busy=0;
+// models not yet out for the run on screen are taken from an earlier run (up to LAG_MAX_H back): lagged[k] = '12Z' (12 h older) or '02/00Z'
+const LAG_MAX_H=48;
+let lagged={};
+const mLab=k=>mName(k)+(lagged[k]?' ('+lagged[k]+')':'');
+const runTag=t=>p2(t.getUTCDate())+'/'+p2(t.getUTCHours())+'Z';
+let IC=null, runModels=[], ownModels=[], product='MME', quiet=false, updating=false;
+let srvList=[], srvModels={}, srvShift={}, wanted=[], newestIC=null, follow=true, retryTimer=null, busy=0;
+const runCache={};
 const setStatus=m=>{ if(quiet) return; statusEl.classList.remove('hide'); statusEl.textContent=m; };
 function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
 function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
@@ -304,9 +310,11 @@ function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,1
 async function loadManifest(){
   try{
     const r=await fetch('district/manifest.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return null;
-    const m=await r.json(); srvModels={};
-    const L=(m.runs||[]).map(x=>{ const d=new Date(x.ic+':00Z'); srvModels[isoUTC(d)]=x.models||['IFS']; return d; }).filter(d=>!isNaN(d));
-    wanted=m.models||Object.keys(MODELS);
+    const m=await r.json(); srvModels={}; srvShift={};
+    const L=(m.runs||[]).map(x=>{ const d=new Date(x.ic+':00Z'); srvModels[isoUTC(d)]=x.models||['IFS']; srvShift[isoUTC(d)]=x.shift||[]; return d; }).filter(d=>!isNaN(d));
+    // models to show: those the workflow is set to run, plus any found in the listed runs
+    const seen=new Set(m.models||[]); Object.values(srvModels).forEach(l=>l.forEach(k=>seen.add(k)));
+    wanted=Object.keys(MODELS).filter(k=>seen.has(k)).concat([...seen].filter(k=>!MODELS[k]));
     return L.length?L:null;
   }catch(e){ return null; }
 }
@@ -316,24 +324,49 @@ function setProduct(){
     f.rain = product==='MME' ? f.mme : (f.m[product]||new Array(DAYS).fill(null));
   }
 }
-async function loadRun(ic){
+async function getRunFile(ic, fresh){
   const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10);
+  if (!fresh && runCache[tag]) return runCache[tag];
   const r=await fetch('district/'+tag+'.json?t='+Date.now(),{cache:'no-store'});
   if(!r.ok) throw new Error('run file not found ('+r.status+')');
   const j=await r.json();
-  const M=j.models || (j.max?{IFS:j.max}:{});                   // files of the ECMWF-only version have "max"
-  const keys=Object.keys(MODELS).filter(k=>M[k]).concat(Object.keys(M).filter(k=>!MODELS[k]));
-  if (!keys.length) throw new Error('no model data in the run file');
-  for (const k of keys) if (M[k].length!==feats.length) throw new Error('run file does not match the district map');
+  if (!j.models) j.models=j.max?{IFS:j.max}:{};                   // files of the ECMWF-only version have "max"
+  if (!j.shift) j.shift={};
+  return (runCache[tag]=j);
+}
+// A model missing from run IC: use its newest earlier run (12 ... LAG_MAX_H h older) for the same 24-h windows.
+// 24 h older: that run's Day n+1 is this run's Day n; 12 h older: its 12-h shifted windows ("shift") line up.
+async function laggedSeries(k, ic){
+  for (let L=12; L<=LAG_MAX_H; L+=12){
+    const old=new Date(ic.getTime()-L*HR), key=isoUTC(old);
+    const inList=L%24 ? (srvShift[key]||[]).includes(k) : (srvModels[key]||[]).includes(k);
+    if (!inList) continue;
+    let j; try{ j=await getRunFile(old); }catch(e){ continue; }
+    const A=L%24 ? j.shift[k] : j.models[k];
+    if (!A || A.length!==feats.length) continue;
+    const off=Math.floor(L/24);                                     // 12 h -> 0, 24/36 h -> 1, 48 h -> 2
+    return {tag:L===12 ? p2(old.getUTCHours())+'Z' : runTag(old), rows:A.map(row=>Array.from({length:DAYS},(_,d)=>d+off<row.length ? row[d+off] : null))};
+  }
+  return null;
+}
+async function loadRun(ic){
+  const j=await getRunFile(ic, true);
+  const M=j.models;
+  const own=Object.keys(MODELS).filter(k=>M[k]).concat(Object.keys(M).filter(k=>!MODELS[k]));
+  if (!own.length) throw new Error('no model data in the run file');
+  for (const k of own) if (M[k].length!==feats.length) throw new Error('run file does not match the district map');
+  const lag={}, L={};
+  for (const k of wanted) if (!M[k]){ const x=await laggedSeries(k, ic); if (x){ lag[k]=x.tag; L[k]=x.rows; } }
+  const keys=Object.keys(MODELS).filter(k=>M[k]||L[k]).concat(own.filter(k=>!MODELS[k]));
   feats.forEach((f,i)=>{
     f.m={}; f.mme=[]; f.mn=[];
-    for (const k of keys) f.m[k]=M[k][i];
+    for (const k of keys) f.m[k]=M[k] ? M[k][i] : L[k][i];
     for (let d=0; d<DAYS; d++){
       let s=0,n=0; for (const k of keys){ const v=f.m[k][d]; if (v!=null){ s+=v; n++; } }
       f.mme.push(n? +(s/n).toFixed(1) : null); f.mn.push(n);
     }
   });
-  runModels=keys; IC=ic;
+  runModels=keys; ownModels=own; lagged=lag; IC=ic;
   if (product!=='MME' && !keys.includes(product)) product='MME';
   setProduct();
 }
@@ -383,7 +416,7 @@ async function checkNew(){    // every 5 min: a new run, or more models added to
     else{
       buildRunList(newestIC);
       if (follow && (!IC || IC<newestIC)) await openRun(newestIC);
-      else if (IC && (srvModels[isoUTC(IC)]||[]).length>runModels.length) await openRun(IC);
+      else if (IC && (srvModels[isoUTC(IC)]||[]).length>ownModels.length) await openRun(IC);
     }
   }catch(e){} finally{ updating=false; quiet=false; }
 }
@@ -392,19 +425,24 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew
 
 /* ---------- UI ---------- */
 function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date(a.getTime()+24*HR)]; }
-function productLabel(){ return product==='MME' ? 'MME of '+runModels.length+' model'+(runModels.length===1?'':'s')+' ('+runModels.join(', ')+')' : mName(product)+' ('+((MODELS[product]||{}).grid||'')+')'; }
+function productLabel(){ return product==='MME' ? 'MME of '+runModels.length+' model'+(runModels.length===1?'':'s')+' ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')' : mLab(product)+', '+((MODELS[product]||{}).grid||''); }
 function renderHeader(){
   const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
-  t.textContent=(product==='MME'?'MME':mName(product))+' · IC: '+fmtZY(IC);
+  t.textContent=(product==='MME'?'MME':mLab(product))+' · IC: '+fmtZY(IC);
   const short=runModels.filter(k=>feats.length && feats[0].m[k] && feats[0].m[k].some(v=>v==null));
   const miss=wanted.filter(k=>!runModels.includes(k));
-  s.textContent='Models: '+runModels.map(mName).join(', ')+'. Each model’s value is the highest forecast grid-point rainfall inside the district; '
+  const lagK=runModels.filter(k=>lagged[k]);
+  s.textContent='Models: '+runModels.map(mLab).join(', ')+'. Each model’s value is the highest forecast grid-point rainfall inside the district; '
     +'MME is the simple mean of the models, all with equal weight. Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used.'
     +(short.length?' '+short.map(k=>mName(k)+' (to '+(MODELS[k]&&/day \d+/.test(MODELS[k].grid)?MODELS[k].grid.match(/day \d+/)[0]:'fewer days')+')').join(' and ')+(short.length>1?' do':' does')+' not reach day 10, so the MME for the later days averages the remaining models.':'');
   const old=Date.now()-IC.getTime()>60*HR;
-  setWarn(miss.length?(old?'Not available for this run: ':'Not yet available for this run: ')+miss.map(mName).join(', ')+(old?'. The MME of this run uses the models listed above.':'. Added automatically when released.'):'');
+  const notes=[];
+  const andList=a=>a.length>1?a.slice(0,-1).join(', ')+' and '+a[a.length-1]:a.join('');
+  if (lagK.length) notes.push(andList(lagK.map(mName))+(lagK.length>1?' are':' is')+' not yet out for this run, so '+(lagK.length>1?'their':'its')+' previous run is shown and used in the MME (run in brackets), for the same 24-h windows.');
+  if (miss.length) notes.push((old?'Not available for this run: ':'Not yet available for this run: ')+miss.map(mName).join(', ')+(old?'.':'. Added automatically when released.'));
+  setWarn(notes.join(' '));
   document.getElementById('fn').textContent='Forecast: '+runModels.map(k=>mName(k)+' ('+((MODELS[k]||{}).grid||'')+')').join(', ')
-    +', all from the producers’ open data. For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
+    +', all from the producers’ open data. A model whose run for this IC is not out yet is taken from its latest earlier run (up to '+LAG_MAX_H+' h older), for the same 24-h windows, and its run is shown in brackets, e.g. ECMWF IFS (12Z). For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
     +'MME = simple (equal-weight) average of these district values. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. '
     +'Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
   winLine();
@@ -418,7 +456,7 @@ function buildProducts(){
   const box=document.getElementById('prod');
   box.innerHTML='<span style="color:var(--mute)">Map shows:</span>';
   for (const k of ['MME'].concat(runModels)){
-    const b=document.createElement('button'); b.textContent=k==='MME'?'MME':mName(k); b.setAttribute('aria-pressed',k===product);
+    const b=document.createElement('button'); b.textContent=k==='MME'?'MME':mLab(k); b.setAttribute('aria-pressed',k===product);
     b.onclick=()=>{ product=k; setProduct(); [...box.querySelectorAll('button')].forEach(c=>c.setAttribute('aria-pressed',c===b)); renderHeader(); draw(); };
     box.appendChild(b);
   }
@@ -458,7 +496,7 @@ function showTip(e){
   h+='<table>';
   for (const k of runModels){
     const v=f.m[k][dayIdx];
-    h+='<tr'+(product===k?' class="on"':'')+'><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>'+mName(k)+'</td><td class="v">'+fmt(v)+'</td></tr>';
+    h+='<tr'+(product===k?' class="on"':'')+'><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>'+mLab(k)+'</td><td class="v">'+fmt(v)+'</td></tr>';
   }
   const v=f.mme[dayIdx], n=f.mn[dayIdx];
   h+='<tr class="mme'+(product==='MME'?' on':'')+'"><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>MME'+(n&&n<runModels.length?' ('+n+' models)':'')+'</td><td class="v">'+fmt(v)+'</td></tr></table>';
@@ -514,7 +552,7 @@ document.getElementById('png').onclick=()=>{
   const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
   c.fillStyle='#14202b'; c.textBaseline='top';
   c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
-  c.fillText('District-wise 24-h rainfall forecast (mm) · '+(product==='MME'?'MME ('+runModels.join(', ')+')':mName(product)+', district maximum'),12*d,10*d);
+  c.fillText('District-wise 24-h rainfall forecast (mm) · '+(product==='MME'?'MME ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')':mLab(product)+', district maximum'),12*d,10*d);
   c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
   c.fillText('IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1]),12*d,38*d);
   c.drawImage(cv,0,top);

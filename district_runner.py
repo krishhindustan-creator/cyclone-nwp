@@ -21,8 +21,10 @@ Models are released at different times, so each run file is filled in model by m
 models that are still missing for the recent runs (younger than TRY_HOURS).
 
 Output (in SITE, default ./site):
-    district/YYYYMMDDHH.json   {"ic", "made", "models": {"IFS": [[10 values], ...], ...}}  (districts in geojson order;
-                               null = day not covered by that model)
+    district/YYYYMMDDHH.json   {"ic", "made", "models": {"IFS": [[10 values], ...], ...}, "shift": {...}}
+                               (districts in geojson order; null = day not covered by that model).
+                               "shift" holds the same calendar windows as Day 1..10 of the NEXT run (IC + 12 h):
+                               the page shows them for a model whose newer run is not out yet, marked e.g. "(12Z)".
     district/manifest.json     {"runs": [{"ic": ..., "models": [...]}, ...] newest first, "updated": ...}
 The last KEEP_DAYS days of runs are kept.  Writes work/district_changed when something new was added.
 
@@ -132,37 +134,46 @@ def to_mm(m):
     return m["values"] * (1000.0 if u in ("m", "m of water equivalent") else 1.0)
 
 
-def daily_from_acc(acc, ndays):
-    """acc: {(start_h, end_h): field_mm} -> list of DAYS daily fields (None where the model does not reach)."""
+def daily_from_acc(acc, ndays, offset=0):
+    """acc: {(start_h, end_h): field_mm} -> list of DAYS 24-h fields for the windows [offset+24k, offset+24k+24].
+    offset 0: Day 1..Day ndays of this run (must all be there; None after ndays).
+    offset 12: the same calendar windows as Day 1..Day 10 of the NEXT run (IC + 12 h); None where not reached."""
     days = []
     for k in range(DAYS):
-        a, b = 24 * k, 24 * k + 24
-        if k >= ndays:
-            days.append(None)
-        elif (a, b) in acc:
+        a, b = offset + 24 * k, offset + 24 * k + 24
+        if (a, b) in acc:
             days.append(np.clip(acc[(a, b)], 0, None))
         elif (0, b) in acc and (a == 0 or (0, a) in acc):
             days.append(np.clip(acc[(0, b)] - (acc[(0, a)] if a else 0), 0, None))
-        else:
+        elif offset == 0 and k < ndays:
             raise RuntimeError("accumulation for day %d missing" % (k + 1))
+        else:
+            days.append(None)
+    if offset == 0:
+        days = [d if k < ndays else None for k, d in enumerate(days)]
     return days
 
 
 class Field:
-    """Model output over the India box: lat, lon (1-D) and the daily rainfall (list of 1-D arrays or None)."""
-    def __init__(self, lat, lon, days, key):
+    """Model output over the India box: lat, lon (1-D), the daily rainfall of this run (days) and the 24-h windows
+    of the next run's days (shift); both lists of 1-D arrays or None."""
+    def __init__(self, lat, lon, acc, ndays, key):
         sel = (lat >= BOX[0]) & (lat <= BOX[1]) & (lon >= BOX[2]) & (lon <= BOX[3])
         self.lat, self.lon, self.key = lat[sel], lon[sel], key
-        self.days = [None if d is None else d[sel] for d in days]
+        self.days = [None if d is None else d[sel] for d in daily_from_acc(acc, ndays, 0)]
+        self.shift = [None if d is None else d[sel] for d in daily_from_acc(acc, ndays, 12)]
 
 
 def field_regular(msgs, ndays, key):
     acc = {(m["start"], m["end"]): to_mm(m) for m in msgs}
     lat, lon = regular_latlon(msgs[0])
-    return Field(lat, lon, daily_from_acc(acc, ndays), key)
+    return Field(lat, lon, acc, ndays, key)
 
 
 # ------------------------------------------------------------------ the models
+STEPS = list(range(12, 24 * DAYS + 1, 12))       # 12, 24, ..., 240 h: run totals needed for both window sets
+
+
 def ymd_hh(ic):
     return ic.strftime("%Y%m%d"), ic.strftime("%H")
 
@@ -176,7 +187,7 @@ def get_ecmwf(model, key, ic):
         except TypeError:
             client = Client(source="ecmwf")
         client.retrieve(date=int(ic.strftime("%Y%m%d")), time=ic.hour, stream="oper", type="fc", param="tp",
-                        step=[24 * d for d in range(1, DAYS + 1)], target=target)
+                        step=STEPS, target=target)
         msgs = read_msgs(target)
     finally:
         if os.path.exists(target):
@@ -193,10 +204,10 @@ def get_aifs(ic):
 
 
 def _ncep(url_of):
-    """GFS-type output on AWS: for each day, the run-total APCP (0-N h) message, fetched by byte range."""
+    """GFS-type output on AWS: for each step, the run-total APCP (0-N h) message, fetched by byte range."""
     msgs = []
-    for d in range(1, DAYS + 1):
-        url = url_of(24 * d)
+    for s in STEPS[::-1]:                        # last step first: fails fast while the run is still coming in
+        url = url_of(s)
         msgs += read_msgs(http_get(url, idx_range(url, r":APCP:surface:0-\d+ (hour|day) acc")))
     return msgs
 
@@ -209,10 +220,10 @@ def get_gfs(ic):
     except Exception as e:                       # fall back to NOMADS (grib filter, India box only)
         print("    GFS on AWS: %s - trying NOMADS" % str(e)[:120], flush=True)
         msgs = []
-        for d in range(1, DAYS + 1):
+        for s in STEPS:
             url = ("https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?dir=%%2Fgfs.%s%%2F%s%%2Fatmos"
                    "&file=gfs.t%sz.pgrb2.0p25.f%03d&var_APCP=on&lev_surface=on&subregion=&toplat=%g&leftlon=%g"
-                   "&rightlon=%g&bottomlat=%g" % (ymd, hh, hh, 24 * d, BOX[1], BOX[2], BOX[3], BOX[0]))
+                   "&rightlon=%g&bottomlat=%g" % (ymd, hh, hh, s, BOX[1], BOX[2], BOX[3], BOX[0]))
             msgs += [m for m in read_msgs(http_get(url)) if m["start"] == 0]
             time.sleep(1)
     return field_regular(msgs, DAYS, "GFS")
@@ -233,8 +244,8 @@ _icon_grid = {}
 def get_icon(ic):
     ymd, hh = ymd_hh(ic); tag = ymd + hh
     acc = {}
-    for d in range(ICON_DAYS, 0, -1):            # last step first: fails fast while the run is still coming in
-        raw = bz2.decompress(http_get(ICON_URL % (hh, "tot_prec", "single-level", tag, "_%03d_TOT_PREC" % (24 * d))))
+    for s in [x for x in STEPS if x <= 180][::-1]:   # last step first: fails fast while the run is still coming in
+        raw = bz2.decompress(http_get(ICON_URL % (hh, "tot_prec", "single-level", tag, "_%03d_TOT_PREC" % s)))
         m = read_msgs(raw)[0]
         acc[(m["start"], m["end"])] = to_mm(m)
     if "grid" not in _icon_grid:                 # cell-centre coordinates (degrees) of the icosahedral grid
@@ -246,30 +257,31 @@ def get_icon(ic):
     lat, lon = _icon_grid["grid"]
     if len(lat) != len(m["values"]):
         raise RuntimeError("ICON grid size changed")
-    return Field(lat, lon, daily_from_acc(acc, ICON_DAYS), "ICON")
+    return Field(lat, lon, acc, ICON_DAYS, "ICON")
 
 
 def get_gdps(ic):
     ymd, hh = ymd_hh(ic)
     msgs = []
-    for d in range(DAYS, 0, -1):                 # last step first: fails fast while the run is still coming in
-        s = 24 * d
+    for s in [x for x in STEPS if x >= 24][::-1]:    # 24-h totals ending at 24, 36, ..., 240 h; last step first
         url = ("https://dd.weather.gc.ca/%s/WXO-DD/model_gdps/15km/%s/%03d/%sT%sZ_MSC_GDPS_Precip-Accum24h_Sfc_LatLon0.15_PT%03dH.grib2"
                % (ymd, hh, s, ymd, hh, s))
         m = read_msgs(http_get(url))[0]
         m["units"] = "kg m**-2"                  # MSC parameter is not in the ecCodes tables; values are mm
+        m["start"], m["end"] = s - 24, s         # 24-h total ending at the step
         msgs.append(m)
     return field_regular(msgs, DAYS, "GDPS")
 
 
 ARPEGE_URL = ("https://meteofrance-pnt.s3.rbx.io.cloud.ovh.net/pnt/%s/arpege/025/SP1/"
               "arpege__025__SP1__%s__%s.grib2")
-ARPEGE_PKG = [("000H024H", 24), ("025H048H", 48), ("049H072H", 72), ("073H102H", 96)]   # package, step needed
+ARPEGE_PKG = [("000H024H", (12, 24)), ("025H048H", (36, 48)), ("049H072H", (60, 72)), ("073H102H", (84, 96))]
+ARPEGE_DAYS = 4                                  # runs end at +102 h
 
 
-def stream_pick(url, want):
-    """Stream a (large) GRIB2 file and return the first message for which want(shortName, endStep) is true
-    (as a one-element list; empty if none).  Reading stops at that message."""
+def stream_pick(url, want, n):
+    """Stream a (large) GRIB2 file and return the messages for which want(shortName, endStep) is true.
+    Reading stops as soon as n such messages have been found."""
     import eccodes as ec
     req = urllib.request.Request(url, headers=UA)
     try:
@@ -296,7 +308,9 @@ def stream_pick(url, want):
                 finally:
                     ec.codes_release(gid)
                 if ok:
-                    return [msg]
+                    keep.append(msg)
+                    if len(keep) >= n:
+                        return keep
             chunk = r.read(1 << 20)
             if not chunk:
                 return keep
@@ -306,13 +320,14 @@ def stream_pick(url, want):
 def get_arpege(ic):
     iso = ic.strftime("%Y-%m-%dT%H:00:00Z")
     msgs = []
-    for pkg, step in ARPEGE_PKG[::-1]:           # last package first: fails fast while the run is still coming in
-        got = stream_pick(ARPEGE_URL % (iso, pkg, iso),
-                          lambda sn, es, step=step: sn == "tp" and es == step)
-        if not got:
-            raise RuntimeError("tp at +%d h not found in package %s" % (step, pkg))
-        msgs += read_msgs(got[0])
-    return field_regular(msgs, len(ARPEGE_PKG), "ARPEGE")
+    for pkg, steps in ARPEGE_PKG[::-1]:          # last package first: fails fast while the run is still coming in
+        got = stream_pick(ARPEGE_URL % (iso, pkg, iso), lambda sn, es, steps=steps: sn == "tp" and es in steps,
+                          len(steps))
+        if len(got) < len(steps):
+            raise RuntimeError("tp at +%s h not found in package %s" % (steps, pkg))
+        for g in got:
+            msgs += read_msgs(g)
+    return field_regular(msgs, ARPEGE_DAYS, "ARPEGE")
 
 
 FETCH = {"IFS": get_ifs, "AIFS": get_aifs, "GFS": get_gfs, "AIGFS": get_aigfs, "ICON": get_icon, "GDPS": get_gdps,
@@ -381,9 +396,9 @@ def district_index(D, F):
     return out
 
 
-def district_max(D, F):
+def district_max(D, F, days):
     pts = district_index(D, F)
-    return [[None if day is None else round(float(day[p].max()), 1) for day in F.days] for p in pts]
+    return [[None if day is None else round(float(day[p].max()), 1) for day in days] for p in pts]
 
 
 # ------------------------------------------------------------------ run bookkeeping
@@ -400,6 +415,7 @@ def load_run(path):
     if "models" not in j and "max" in j:          # file written by the ECMWF-only version
         j["models"] = {"IFS": j.pop("max")}
     j.setdefault("models", {})
+    j.setdefault("shift", {})
     return j
 
 
@@ -417,8 +433,8 @@ def main():
     D = None; added = 0
     for ic in ics:
         tag = ic.strftime("%Y%m%d%H"); path = os.path.join(OUT, tag + ".json")
-        run = (None if FORCE else load_run(path)) or {"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": {}}
-        todo = [m for m in MODELS if m not in run["models"]]
+        run = (None if FORCE else load_run(path)) or {"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": {}, "shift": {}}
+        todo = [m for m in MODELS if m not in run["models"] or m not in run["shift"]]
         if not todo:
             continue
         changed = False
@@ -428,8 +444,9 @@ def main():
                 F = FETCH[name](ic)
                 if D is None:
                     D = load_districts()
-                res = district_max(D, F)
-                run["models"][name] = res; changed = True
+                run["models"][name] = district_max(D, F, F.days)
+                run["shift"][name] = district_max(D, F, F.shift)
+                changed = True
                 print("  %s %-5s done (%.0f s, %d grid points in the India box)" % (tag, name, time.time() - t0, len(F.lat)),
                       flush=True)
             except Exception as e:                # not released yet / not available: try again next time
@@ -437,9 +454,11 @@ def main():
         if changed:
             order = [m for m in FETCH if m in run["models"]]
             run["models"] = {m: run["models"][m] for m in order}
+            run["shift"] = {m: run["shift"][m] for m in FETCH if m in run["shift"]}
             run["made"] = now.strftime("%Y-%m-%d %H:%M UTC")
             run["src"] = {m: INFO[m] for m in order}
-            run["note"] = "Value = maximum of the model grid-point values inside each district (mm per 24 h)."
+            run["note"] = ("Value = maximum of the model grid-point values inside each district (mm per 24 h). "
+                           "models: Day 1..10 of this run; shift: the 24-h windows of Day 1..10 of the next run (IC + 12 h).")
             json.dump(run, open(path, "w"), separators=(",", ":"))
             added += 1
     # keep KEEP_DAYS days, write manifest (newest first)
@@ -453,7 +472,7 @@ def main():
         if ic < cut or ic.hour not in (0, 12):
             os.remove(f); print("removed", os.path.basename(f)); continue
         j = load_run(f) or {"models": {}}
-        runs.append({"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": list(j["models"])})
+        runs.append({"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": list(j["models"]), "shift": list(j.get("shift", {}))})
     ist = now + dt.timedelta(hours=5, minutes=30)
     json.dump({"runs": runs, "updated": "%s IST" % ist.strftime("%d %b %Y %H:%M"), "keep_days": KEEP_DAYS,
                "models": MODELS}, open(os.path.join(OUT, "manifest.json"), "w"), separators=(",", ":"))
