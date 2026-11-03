@@ -53,13 +53,14 @@ jobs:
         run: python nwp_runner.py
       - name: Add district rainfall page
         run: cp district-rainfall.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
-      - name: District rainfall (IFS, AIFS, GFS, AIGFS, ICON, GDPS, ARPEGE + MME; maximum over each district)
+      - name: District rainfall (10 models + MME; maximum over each district)
         continue-on-error: true
         timeout-minutes: 45
         env:
           FORCE:  ${{ github.event.inputs.force }}
           RUN_ID: ${{ github.event.inputs.run_id }}
-          MODELS: "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE"
+          MODELS: "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE,IMDGFS,NCUMG,NCUMR"
+          IMD_PWD: ${{ secrets.IMD_PWD }}   # same IMD SFTP login as the cyclone MME
           KEEP_DAYS: "7"
         run: |
           pip install ecmwf-opendata
