@@ -10,9 +10,10 @@ on:
     - cron: "0 17 * * *"     # 22:30 IST
     - cron: "0 20 * * *"     # 01:30 IST
     - cron: "0 21 * * *"     # 02:30 IST
-    # District rainfall only (quick runs, every 30 min while ECMWF releases a new 00 / 12 UTC run)
-    - cron: "10,40 5-10 * * *"
-    - cron: "10,40 17-22 * * *"
+    # District rainfall only (quick runs, every 30 min while the models release a new 00 / 12 UTC run:
+    # GFS, AIGFS, ICON, GDPS, ARPEGE from about +3.5 h, ECMWF IFS / AIFS from about +6.5 h)
+    - cron: "10,40 3-10 * * *"
+    - cron: "10,40 15-22 * * *"
   workflow_dispatch:
     inputs:
       run_id: {description: "Run YYYYMMDDHH (empty = latest)", required: false, default: ""}
@@ -52,13 +53,20 @@ jobs:
         run: python nwp_runner.py
       - name: Add district rainfall page
         run: cp district-rainfall.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
-      - name: District rainfall (ECMWF open data, maximum over each district)
+      - name: District rainfall (IFS, AIFS, GFS, AIGFS, ICON, GDPS, ARPEGE + MME; maximum over each district)
         continue-on-error: true
+        timeout-minutes: 45
         env:
-          FORCE: ${{ github.event.inputs.force }}
+          FORCE:  ${{ github.event.inputs.force }}
+          RUN_ID: ${{ github.event.inputs.run_id }}
+          MODELS: "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE"
+          KEEP_DAYS: "7"
         run: |
           pip install ecmwf-opendata
           python district_runner.py
+      - name: Tab name (MME District Rainfall Forecast)
+        run: |
+          [ -f site/index.html ] && sed -i 's/ECMWF District Rainfall\( Forecast\)\?/MME District Rainfall Forecast/g' site/index.html || true
       - name: Publish (gh-pages, no history so old runs do not pile up)
         run: |
           if [ "${{ contains(github.event.schedule, '10,40') }}" = "true" ] && [ ! -f work/district_changed ]; then
