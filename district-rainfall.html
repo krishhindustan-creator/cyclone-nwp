@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ECMWF District Rainfall</title>
+<title>MME District Rainfall Forecast</title>
 <style>
   :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
   *{box-sizing:border-box}
@@ -28,8 +28,19 @@
   #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
     background:rgba(255,255,255,.85);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
   #status.hide{display:none}
-  #tip{position:fixed;pointer-events:none;background:#14202b;color:#fff;padding:6px 9px;border-radius:5px;
-    font-size:.82rem;line-height:1.3;display:none;z-index:5;max-width:220px}
+  #tip{position:fixed;pointer-events:none;background:#14202b;color:#fff;padding:7px 10px;border-radius:6px;
+    font-size:.82rem;line-height:1.3;display:none;z-index:5;max-width:280px}
+  #tip table{border-collapse:collapse;margin-top:5px;width:100%}
+  #tip td{padding:1px 0;white-space:nowrap}
+  #tip td.v{text-align:right;padding-left:14px;font-variant-numeric:tabular-nums}
+  #tip td i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;border:1px solid #fff6}
+  #tip tr.mme td{border-top:1px solid #fff5;padding-top:4px;font-weight:700}
+  #tip tr.on td{color:#ffd479}
+  #tip .cat{opacity:.85;font-size:.78rem;margin-top:3px}
+  .prod{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:0 0 8px;font-size:.88rem}
+  .prod button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:5px 11px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem}
+  .prod button[aria-pressed="true"]{background:#14202b;border-color:#14202b;color:#fff}
+  .prod button:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
   #tip b{display:block;font-size:.9rem}
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:12px 0 4px}
   .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
@@ -49,15 +60,16 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>ECMWF District Rainfall</h1>
+  <h1>MME District Rainfall Forecast</h1>
   <div class="icbar">
-    <div class="ic" id="ictxt">ECMWF IFS 0.25° · finding latest run…</div>
-    <div class="icsub" id="icsub">24-hour district rainfall forecast</div>
+    <div class="ic" id="ictxt">MME · finding latest run…</div>
+    <div class="icsub" id="icsub">24-hour district rainfall forecast, multi-model ensemble</div>
     <div class="icwarn" id="icwarn" hidden></div>
   </div>
   <p class="sub" id="win"></p>
   <div class="runbar" id="runbar" hidden><label for="runsel">Run (IC):</label><select id="runsel"></select></div>
 
+  <div class="prod" id="prod" role="group" aria-label="Map shows"></div>
   <div class="days" id="days" role="group" aria-label="Forecast day"></div>
 
   <div class="stage">
@@ -79,21 +91,24 @@
     <label id="sdnlbl" hidden><input type="checkbox" id="sdn" checked> Subdivision names</label>
   </div>
 
-  <p class="note" id="fn">
-    Forecast: ECMWF IFS 0.25° (via Open-Meteo). Day n is the n-th 24 hours after the run’s initial condition (IC). Sampled at one point (centroid) per district, so a district’s value is
-    a point value, not an area average. Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.
-  </p>
+  <p class="note" id="fn"></p>
 </div>
 <div id="tip"></div>
 
 <script>
 /* ---------- Configuration ---------- */
-// Put a (simplified) district GeoJSON in your repo and point to it here.
 const GEO_URL = 'india_districts.geojson';
-const MODEL = 'ecmwf_ifs025';
 const DAYS = 10;
-const BATCH = 80;                // forecast points per API request
-const CACHE_HOURS = 3;
+// Models the workflow may provide (shown in this order); the page uses whichever are in a run file
+const MODELS = {
+  IFS:   {name:'ECMWF IFS',  grid:'0.25°'},
+  AIFS:  {name:'ECMWF AIFS', grid:'0.25°, AI model'},
+  GFS:   {name:'NCEP GFS',   grid:'0.25°'},
+  AIGFS: {name:'NOAA AIGFS', grid:'0.25°, AI model'},
+  ICON:  {name:'DWD ICON',   grid:'~13 km, to day 7'},
+  GDPS:  {name:'CMC GDPS',   grid:'0.15°'},
+  ARPEGE:{name:'Météo-France ARPEGE', grid:'0.25°, to day 4'}
+};
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
 const STATE_KEYS = ['STATE','state','State','st_nm','STATE_UT','NAME_1','stname','ST_NM'];
@@ -271,159 +286,64 @@ function drawLabels(placed){
   }
 }
 
-/* ---------- Forecast loading ---------- */
-const SINGLE='https://single-runs-api.open-meteo.com/v1/forecast', LIVE='https://api.open-meteo.com/v1/forecast';
+
+/* ---------- Forecast data: district maxima of each model, prepared by the GitHub workflow ---------- */
 const HR=3600e3, MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const p2=n=>String(n).padStart(2,'0');
 const isoUTC=t=>t.toISOString().slice(0,16);
 const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMonth()];
 const fmtZY=t=>fmtZ(t)+' '+t.getUTCFullYear();
 const fmtIST=t=>{const s=new Date(t.getTime()+5.5*HR);return p2(s.getUTCHours())+':'+p2(s.getUTCMinutes())+' IST '+p2(s.getUTCDate())+' '+MON[s.getUTCMonth()];};
-const ARCHIVE=true;          // run list (latest + last 7 days); the fallback 'latest' mode is used only if no pinned run can be loaded
-let IC=null, mode='run', quiet=false, updating=false;   // mode 'run' = pinned 00/12 UTC run; 'latest' = fallback
+const mName=k=>(MODELS[k]||{name:k}).name;
+let IC=null, runModels=[], product='MME', quiet=false, updating=false;
+let srvList=[], srvModels={}, wanted=[], newestIC=null, follow=true, retryTimer=null, busy=0;
 const setStatus=m=>{ if(quiet) return; statusEl.classList.remove('hide'); statusEl.textContent=m; };
+function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
+function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
 
-const coordQS=sub=>'latitude='+sub.map(f=>f.lat).join(',')+'&longitude='+sub.map(f=>f.lon).join(',');
-const runURL=(sub,ic,days)=>SINGLE+'?'+coordQS(sub)+'&hourly=precipitation&models='+MODEL+'&timezone=UTC&forecast_days='+(days||11)+'&run='+encodeURIComponent(isoUTC(ic));
-async function getJSON(url,tries=4){
-  for (let t=0;t<tries;t++){
-    const last=(t===tries-1);
-    let r;
-    try{ r=await fetch(url); }catch(e){ if(last) throw e; await sleep(2000*(t+1)); continue; }
-    if (r.ok){ const j=await r.json(); return Array.isArray(j)?j:[j]; }
-    let reason=''; try{ reason=(await r.json()).reason||''; }catch(e){}
-    if (r.status===429){
-      if (reason && !/minutely/i.test(reason)){ const err=new Error('Forecast service limit reached ('+reason+')'); err.status=429; throw err; }
-      if (!last){ setStatus('Forecast service rate limit reached, waiting a moment…'); await sleep(20000*(t+1)); }
-      continue;
-    }
-    if (r.status>=500){ if(!last) await sleep(2000*(t+1)); continue; }
-    const err=new Error('Forecast service returned '+r.status+(reason?': '+reason:'')); err.status=r.status; throw err;
-  }
-  const err=new Error('Forecast service is busy'); err.status=429; throw err;
-}
-// keep under the free limit (600 locations/min): at most 480 in any 60 s
-const sentLog=[];
-async function throttle(n){
-  for(;;){
-    const now=Date.now(); while(sentLog.length && sentLog[0].t<now-60e3) sentLog.shift();
-    const used=sentLog.reduce((a,x)=>a+x.n,0);
-    if (!sentLog.length || used+n<=480){ sentLog.push({t:now,n}); return; }
-    setStatus('Pacing requests to the forecast service…');
-    await sleep(Math.max(500,sentLog[0].t+60e3-now+250));
-  }
-}
-// Day n = rainfall accumulated over the n-th 24 h after the IC (hourly values are "preceding hour" sums)
-function dailyFromRun(r,ic){
-  const t=r.hourly.time, p=r.hourly.precipitation, i0=t.indexOf(isoUTC(ic));
-  if (i0<0) throw new Error('Run time not found in forecast data');
-  const out=[];
-  for (let d=0; d<DAYS; d++){
-    let s=0, ok=true;
-    for (let h=1; h<=24; h++){ const v=p[i0+24*d+h]; if (v==null){ ok=false; break; } s+=v; }
-    out.push(ok ? +s.toFixed(1) : null);
-  }
-  return out;
-}
-async function probe(ic){
-  try{
-    const r=await getJSON(runURL([feats[Math.floor(feats.length/2)]],ic,1),1);
-    return !!(r[0].hourly && r[0].hourly.precipitation && r[0].hourly.precipitation.some(v=>v!=null));
-  }catch(e){ return false; }
-}
-const latestBase=()=>Math.floor(Date.now()/(12*HR))*12*HR;       // latest 00/12 UTC boundary
-async function pickRun(){
-  for (let k=0;k<3;k++){ const ic=new Date(latestBase()-k*12*HR); if (await probe(ic)) return ic; }
-  return null;
-}
-async function metaIC(){
-  try{
-    const r=await fetch('https://api.open-meteo.com/data/'+MODEL+'/static/meta.json'); if(!r.ok) return null;
-    const j=await r.json(); return j.last_run_initialisation_time ? new Date(j.last_run_initialisation_time*1000) : null;
-  }catch(e){ return null; }
-}
-async function fetchAll(makeURL,onData){
-  const n=Math.ceil(feats.length/BATCH);
-  for (let i=0;i<n;i++){
-    setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
-    const sub=feats.slice(i*BATCH,(i+1)*BATCH), res=await getJSON(makeURL(sub));
-    res.forEach((r,j)=>onData(sub[j],r,i,j));
-  }
-}
-function pruneCache(){
-  try{
-    Object.keys(localStorage).filter(k=>k.startsWith('dr_')).forEach(k=>{
-      const t=Date.parse((k.split('_')[2]||'')+'Z');
-      if (k.startsWith('dr_v1') || !(t>Date.now()-8*24*HR)) localStorage.removeItem(k);
-    });
-  }catch(e){}
-}
-const PART={};                                   // partial results per run, so a retry only fetches what is missing
-const cellKey=f=>Math.round(f.lat*4)+','+Math.round(f.lon*4);   // IFS grid is 0.25°: districts in one cell share a value
-async function loadRun(ic,force){
-  if (SRV) return loadRunSrv(ic);
-  const id=isoUTC(ic), key='dr_v2_'+id+'_'+feats.length;
-  let c=null; if(!force){ try{ c=JSON.parse(localStorage.getItem(key)||'null'); }catch(e){} }
-  if (c && c.rain.length===feats.length) feats.forEach((f,i)=>f.nxt=c.rain[i]);
-  else{
-    if (force) delete PART[id];
-    const P=PART[id]||(PART[id]={}), groups=new Map();
-    feats.forEach(f=>{ const k=cellKey(f); if(!groups.has(k)) groups.set(k,f); });
-    const todo=[...groups].filter(([k])=>!(k in P)), n=Math.ceil(todo.length/BATCH);
-    for (let i=0;i<n;i++){
-      const part=todo.slice(i*BATCH,(i+1)*BATCH), sub=part.map(x=>x[1]);
-      await throttle(sub.length);
-      setStatus('Loading ECMWF forecast… '+(i+1)+' of '+n);
-      const res=await getJSON(runURL(sub,ic));
-      if (res.length!==sub.length) throw new Error('Unexpected response from the forecast service');
-      res.forEach((r,j)=>{ P[part[j][0]]=dailyFromRun(r,ic); });
-    }
-    feats.forEach(f=>{ f.nxt=P[cellKey(f)]; });
-    try{ pruneCache(); localStorage.setItem(key,JSON.stringify({rain:feats.map(f=>f.nxt)})); }catch(e){}
-    delete PART[id];
-  }
-  mode='run'; IC=ic;
-  feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
-}
-async function loadForecast(force){
-  setStatus('Finding latest ECMWF run…');
-  const ic=await pickRun();
-  if (ic) return loadRun(ic,force);
-  await fetchAll(sub=>LIVE+'?'+coordQS(sub)+'&daily=precipitation_sum&models='+MODEL+'&timezone=Asia%2FKolkata&forecast_days='+DAYS,
-    (f,r,i,j)=>{ f.nxt=r.daily.precipitation_sum.map(v=>v==null?null:+v); if(i===0&&j===0) times=r.daily.time; });
-  mode='latest'; IC=await metaIC();
-  feats.forEach(f=>{ f.rain=f.nxt; delete f.nxt; });
-}
-// Run list: latest 00/12 UTC run + the previous 7 days (14 runs, newest first)
-/* ---------- Server data: district maximum computed in the GitHub workflow from ECMWF open data ---------- */
-let SRV=false, srvList=[];
 async function loadManifest(){
   try{
     const r=await fetch('district/manifest.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return null;
-    const m=await r.json(), L=(m.runs||[]).map(x=>new Date(x.ic+':00Z')).filter(d=>!isNaN(d));
+    const m=await r.json(); srvModels={};
+    const L=(m.runs||[]).map(x=>{ const d=new Date(x.ic+':00Z'); srvModels[isoUTC(d)]=x.models||['IFS']; return d; }).filter(d=>!isNaN(d));
+    wanted=m.models||Object.keys(MODELS);
     return L.length?L:null;
   }catch(e){ return null; }
 }
-async function loadRunSrv(ic){
+// MME = simple (equal-weight) mean of the models that cover that day
+function setProduct(){
+  for (const f of feats){
+    f.rain = product==='MME' ? f.mme : (f.m[product]||new Array(DAYS).fill(null));
+  }
+}
+async function loadRun(ic){
   const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10);
   const r=await fetch('district/'+tag+'.json?t='+Date.now(),{cache:'no-store'});
   if(!r.ok) throw new Error('run file not found ('+r.status+')');
   const j=await r.json();
-  if(!j.max || j.max.length!==feats.length) throw new Error('run file does not match the district map');
-  feats.forEach((f,i)=>{ f.rain=j.max[i]; });
-  mode='run'; IC=ic;
+  const M=j.models || (j.max?{IFS:j.max}:{});                   // files of the ECMWF-only version have "max"
+  const keys=Object.keys(MODELS).filter(k=>M[k]).concat(Object.keys(M).filter(k=>!MODELS[k]));
+  if (!keys.length) throw new Error('no model data in the run file');
+  for (const k of keys) if (M[k].length!==feats.length) throw new Error('run file does not match the district map');
+  feats.forEach((f,i)=>{
+    f.m={}; f.mme=[]; f.mn=[];
+    for (const k of keys) f.m[k]=M[k][i];
+    for (let d=0; d<DAYS; d++){
+      let s=0,n=0; for (const k of keys){ const v=f.m[k][d]; if (v!=null){ s+=v; n++; } }
+      f.mme.push(n? +(s/n).toFixed(1) : null); f.mn.push(n);
+    }
+  });
+  runModels=keys; IC=ic;
+  if (product!=='MME' && !keys.includes(product)) product='MME';
+  setProduct();
 }
-let newestIC=null, follow=true, retryTimer=null, busy=0;      // busy: a load is in progress (never start a second one)
-function setWarn(m){ const e=document.getElementById('icwarn'); e.textContent=m; e.hidden=!m; }
-function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,120e3); }
-async function openRun(ic,force){
+async function openRun(ic){
   busy++;
   try{
-    if (quiet) setWarn('New ECMWF run '+fmtZY(ic)+' is available, loading it…'); else setStatus('Loading run '+fmtZY(ic)+'…');
-    await loadRun(ic,force);
+    if (quiet) setWarn('Loading '+fmtZY(ic)+'…'); else setStatus('Loading run '+fmtZY(ic)+'…');
+    await loadRun(ic);
     const sel=document.getElementById('runsel'); if (sel.options && sel.options.length) sel.value=isoUTC(ic);
-    buildDays(); renderHeader(); setWarn(''); statusEl.classList.add('hide'); draw();
+    setWarn(''); buildProducts(); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw();
     return true;
   }catch(e){
     const msg='Could not load run '+fmtZY(ic)+': '+e.message+'.';
@@ -436,57 +356,35 @@ async function openRun(ic,force){
 function buildRunList(newest){
   newestIC=newest;
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
-  const list=SRV?srvList:Array.from({length:14},(_,k)=>new Date(newest.getTime()-k*12*HR));
-  sel.innerHTML=list.map((t,k)=>'<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>').join('');
+  sel.innerHTML=srvList.map((t,k)=>{ const n=(srvModels[isoUTC(t)]||[]).length;
+    return '<option value="'+isoUTC(t)+'">'+fmtZY(t)+'  ('+n+' model'+(n===1?'':'s')+(k===0?', latest':'')+')</option>'; }).join('');
   if (IC) sel.value=isoUTC(IC);
-  sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z'),false); };
+  sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z')); };
 }
-async function bootArchive(){
+async function boot(){
   busy++;
-  try{ await bootArchive_(); } finally{ busy--; }
-}
-async function bootArchive_(){
-  setStatus('Finding latest ECMWF run…');
-  const L=await loadManifest();
-  if (L){                                          // district maxima prepared by the workflow
-    SRV=true; srvList=L; follow=true; buildRunList(L[0]);
-    if (!(await openRun(L[0],false)) && L[1]){
-      if (await openRun(L[1],false)) setWarn('Latest run '+fmtZY(L[0])+' could not be loaded yet, showing the previous run. Retrying automatically.');
-    }
-    return;
-  }
-  const newest=await pickRun();
-  if (!newest){                                   // pinned runs unavailable: show the service's latest data instead
-    document.getElementById('runbar').hidden=true;
-    await loadForecast(false); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); return;
-  }
-  follow=true; buildRunList(newest);
-  if (!(await openRun(newest,false))){            // newest could not be loaded (e.g. rate limit): show the previous run meanwhile
-    const prev=new Date(newest.getTime()-12*HR);
-    if (await openRun(prev,false)) setWarn('Latest run '+fmtZY(newest)+' could not be loaded yet, showing the previous run. Retrying automatically.');
-  }
-}
-async function checkNew(){            // every 5 min: pick up a newly released 00/12 UTC run and keep retrying until it loads
-  if (updating || busy || !feats.length) return;
-  updating=true; quiet=true;                         // first look for workflow-prepared data (a small static file)
   try{
+    setStatus('Finding latest run…');
     const L=await loadManifest();
-    if (L){
-      const first=!SRV; SRV=true; srvList=L;
-      if (first || !newestIC || L[0]>newestIC){ if (first) follow=true; buildRunList(L[0]); if (follow) await openRun(L[0],false); }
-      else if (follow && (!IC || IC<newestIC)) await openRun(newestIC,false);
-      return;
+    if (!L){ setStatus('No forecast data found (district/manifest.json). The workflow writes it after each 00/12 UTC run.'); return; }
+    srvList=L; follow=true; buildRunList(L[0]);
+    if (!(await openRun(L[0])) && L[1]){
+      if (await openRun(L[1])) setWarn('Latest run '+fmtZY(L[0])+' could not be loaded yet, showing the previous run. Retrying automatically.');
     }
-  }catch(e){} finally{ updating=false; quiet=false; }
-  if (SRV) return;
-  if (mode==='latest'){ updating=true; quiet=true; try{ if (await pickRun()) await bootArchive(); }catch(e){} finally{ updating=false; quiet=false; } return; }
-  const maybeNew = !newestIC || latestBase()>newestIC.getTime();
-  const behind   = follow && newestIC && (!IC || IC<newestIC);
-  if (!maybeNew && !behind) return;
+  } finally{ busy--; }
+}
+async function checkNew(){    // every 5 min: a new run, or more models added to the run on screen
+  if (updating || busy || !feats.length) return;
   updating=true; quiet=true;
   try{
-    if (maybeNew){ const ic=await pickRun(); if (ic && (!newestIC || ic>newestIC)) buildRunList(ic); }
-    if (follow && newestIC && (!IC || IC<newestIC)) await openRun(newestIC,false);
+    const L=await loadManifest(); if (!L) return;
+    srvList=L;
+    if (!newestIC || L[0]>newestIC){ buildRunList(L[0]); if (follow) await openRun(L[0]); }
+    else{
+      buildRunList(newestIC);
+      if (follow && (!IC || IC<newestIC)) await openRun(newestIC);
+      else if (IC && (srvModels[isoUTC(IC)]||[]).length>runModels.length) await openRun(IC);
+    }
   }catch(e){} finally{ updating=false; quiet=false; }
 }
 setInterval(checkNew,5*60e3);
@@ -494,33 +392,44 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew
 
 /* ---------- UI ---------- */
 function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date(a.getTime()+24*HR)]; }
+function productLabel(){ return product==='MME' ? 'MME of '+runModels.length+' model'+(runModels.length===1?'':'s')+' ('+runModels.join(', ')+')' : mName(product)+' ('+((MODELS[product]||{}).grid||'')+')'; }
 function renderHeader(){
   const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
-  if (mode==='run' && IC){
-    t.textContent='ECMWF IFS 0.25° · IC: '+fmtZY(IC);
-    s.textContent=(SRV?'Each district shows the highest forecast grid-point value inside it. ':'')+'Day 1 is the first 24 h after the IC. The next run ('+fmtZ(new Date((newestIC||IC).getTime()+12*HR))+') appears automatically once ECMWF releases it. Earlier runs of the last 7 days are in the Run list.';
-  }else{
-    t.textContent='ECMWF IFS 0.25° · '+(IC?'latest run, IC: '+fmtZY(IC):'latest available run');
-    s.textContent='The 00/12 UTC run could not be pinned, so this shows the forecast service’s latest data by IST calendar day.';
-  }
-  if (SRV) document.getElementById('fn').textContent='Forecast: ECMWF IFS 0.25° open data. Each district shows the maximum of the forecast grid-point values (0.25°, about 28 km apart) that lie inside it; a district too small to contain a grid point uses the nearest one. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
+  t.textContent=(product==='MME'?'MME':mName(product))+' · IC: '+fmtZY(IC);
+  const short=runModels.filter(k=>feats.length && feats[0].m[k] && feats[0].m[k].some(v=>v==null));
+  const miss=wanted.filter(k=>!runModels.includes(k));
+  s.textContent='Models: '+runModels.map(mName).join(', ')+'. Each model’s value is the highest forecast grid-point rainfall inside the district; '
+    +'MME is the simple mean of the models, all with equal weight. Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used.'
+    +(short.length?' '+short.map(k=>mName(k)+' (to '+(MODELS[k]&&/day \d+/.test(MODELS[k].grid)?MODELS[k].grid.match(/day \d+/)[0]:'fewer days')+')').join(' and ')+(short.length>1?' do':' does')+' not reach day 10, so the MME for the later days averages the remaining models.':'');
+  const old=Date.now()-IC.getTime()>60*HR;
+  setWarn(miss.length?(old?'Not available for this run: ':'Not yet available for this run: ')+miss.map(mName).join(', ')+(old?'. The MME of this run uses the models listed above.':'. Added automatically when released.'):'');
+  document.getElementById('fn').textContent='Forecast: '+runModels.map(k=>mName(k)+' ('+((MODELS[k]||{}).grid||'')+')').join(', ')
+    +', all from the producers’ open data. For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
+    +'MME = simple (equal-weight) average of these district values. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. '
+    +'Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
   winLine();
 }
 function winLine(){
-  const el=document.getElementById('win');
-  if (mode==='run' && IC){ const [a,b]=windowOf(dayIdx);
-    el.textContent='Day '+(dayIdx+1)+': rainfall from '+fmtZ(a)+' to '+fmtZ(b)+'  ('+fmtIST(a)+' → '+fmtIST(b)+')'; }
-  else el.textContent=times[dayIdx]?'IST day '+times[dayIdx]:'';
+  const el=document.getElementById('win'); if (!IC){ el.textContent=''; return; }
+  const [a,b]=windowOf(dayIdx);
+  el.textContent='Day '+(dayIdx+1)+': rainfall from '+fmtZ(a)+' to '+fmtZ(b)+'  ('+fmtIST(a)+' → '+fmtIST(b)+')  ·  Map: '+productLabel();
+}
+function buildProducts(){
+  const box=document.getElementById('prod');
+  box.innerHTML='<span style="color:var(--mute)">Map shows:</span>';
+  for (const k of ['MME'].concat(runModels)){
+    const b=document.createElement('button'); b.textContent=k==='MME'?'MME':mName(k); b.setAttribute('aria-pressed',k===product);
+    b.onclick=()=>{ product=k; setProduct(); [...box.querySelectorAll('button')].forEach(c=>c.setAttribute('aria-pressed',c===b)); renderHeader(); draw(); };
+    box.appendChild(b);
+  }
 }
 function buildDays(){
   const box=document.getElementById('days'); box.innerHTML='';
-  const n=mode==='run'?DAYS:times.length; if (dayIdx>=n) dayIdx=0;
-  for (let i=0;i<n;i++){
+  if (dayIdx>=DAYS) dayIdx=0;
+  for (let i=0;i<DAYS;i++){
     const b=document.createElement('button'); b.setAttribute('aria-pressed',i===dayIdx);
-    if (mode==='run'){ const e=windowOf(i)[1];
-      b.innerHTML='Day '+(i+1)+'<small>to '+p2(e.getUTCDate())+' '+MON[e.getUTCMonth()]+' '+p2(e.getUTCHours())+'Z</small>'; }
-    else{ const d=new Date(times[i]+'T00:00:00');
-      b.innerHTML=d.toLocaleDateString('en-GB',{weekday:'short'})+'<small>'+d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+'</small>'; }
+    const e=windowOf(i)[1];
+    b.innerHTML='Day '+(i+1)+'<small>to '+p2(e.getUTCDate())+' '+MON[e.getUTCMonth()]+' '+p2(e.getUTCHours())+'Z</small>';
     b.onclick=()=>{ dayIdx=i; [...box.children].forEach((c,k)=>c.setAttribute('aria-pressed',k===i)); winLine(); draw(); };
     box.appendChild(b);
   }
@@ -529,6 +438,7 @@ function buildLegend(){
   document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
     +'<span><i style="height:0;border:0;border-top:3px solid #111;width:18px"></i>IMD subdivision boundary</span>';
 }
+
 function local(e){
   const r=cv.getBoundingClientRect();
   return [(e.clientX-r.left)/r.width*view.cssW,(e.clientY-r.top)/r.height*view.cssH];
@@ -539,14 +449,25 @@ function at(e){
   return feats.find(f=>contains(f,lon,lat))||null;
 }
 function showTip(e){
-  if(!view) return;
+  if(!view || !IC) return;
   const f=at(e);
   if (f!==hover){ hover=f; draw(); }
   if (!f){ tip.style.display='none'; return; }
-  const v=f.rain[dayIdx];
-  tip.innerHTML='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span><br>':'')+(v==null?'No data':v.toFixed(1)+' mm · '+binOf(v).label.split(' (')[0]+(SRV?'<br><span style="opacity:.85">maximum over the district</span>':''));
+  const fmt=v=>v==null?'–':v.toFixed(1)+' mm';
+  let h='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span>':'');
+  h+='<table>';
+  for (const k of runModels){
+    const v=f.m[k][dayIdx];
+    h+='<tr'+(product===k?' class="on"':'')+'><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>'+mName(k)+'</td><td class="v">'+fmt(v)+'</td></tr>';
+  }
+  const v=f.mme[dayIdx], n=f.mn[dayIdx];
+  h+='<tr class="mme'+(product==='MME'?' on':'')+'"><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>MME'+(n&&n<runModels.length?' ('+n+' models)':'')+'</td><td class="v">'+fmt(v)+'</td></tr></table>';
+  if (v!=null) h+='<div class="cat">MME: '+binOf(v).label.split(' (')[0]+'</div>';
+  tip.innerHTML=h;
   tip.style.display='block';
-  tip.style.left=Math.min(e.clientX+14,innerWidth-230)+'px'; tip.style.top=(e.clientY+14)+'px';
+  const w=tip.offsetWidth||260, hh=tip.offsetHeight||200;
+  tip.style.left=Math.min(e.clientX+14,innerWidth-w-8)+'px';
+  tip.style.top=(e.clientY+14+hh>innerHeight ? Math.max(8,e.clientY-hh-10) : e.clientY+14)+'px';
 }
 const ptrs=new Map(); let pinch=null, travel=0;
 const pdist=()=>{const a=[...ptrs.values()]; return Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);};
@@ -587,16 +508,15 @@ document.getElementById('lbl').onchange=e=>{showLabels=e.target.checked;draw();}
 document.getElementById('sdb').onchange=e=>{showSD=e.target.checked;draw();};
 document.getElementById('sdn').onchange=e=>{showSDN=e.target.checked;draw();};
 document.getElementById('png').onclick=()=>{
+  if(!IC) return;
   const d=view.dpr, top=Math.round(64*d), bot=Math.round(52*d), W=cv.width;
   const o=document.createElement('canvas'); o.width=W; o.height=cv.height+top+bot;
   const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
   c.fillStyle='#14202b'; c.textBaseline='top';
   c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
-  c.fillText((SRV?'District-wise 24-h rainfall forecast, district maximum (mm)':'District-wise 24-h rainfall forecast (mm)')+' · ECMWF IFS 0.25°',12*d,10*d);
+  c.fillText('District-wise 24-h rainfall forecast (mm) · '+(product==='MME'?'MME ('+runModels.join(', ')+')':mName(product)+', district maximum'),12*d,10*d);
   c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
-  const sub = (mode==='run'&&IC) ? 'IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1])
-                                 : 'Latest available run   |   IST day '+(times[dayIdx]||'');
-  c.fillText(sub,12*d,38*d);
+  c.fillText('IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1]),12*d,38*d);
   c.drawImage(cv,0,top);
   let x=12*d, y=top+cv.height+8*d; c.font='500 '+Math.round(12*d)+'px system-ui,sans-serif';
   for (const b of BINS){
@@ -605,14 +525,13 @@ document.getElementById('png').onclick=()=>{
     c.fillStyle=b.color; c.fillRect(x,y,16*d,11*d); c.strokeStyle='#0004'; c.strokeRect(x,y,16*d,11*d);
     c.fillStyle='#14202b'; c.fillText(b.label,x+22*d,y-1*d); x+=w+8*d;
   }
-  const stamp=(mode==='run'&&IC)?'IC'+isoUTC(IC).replace(/[-:T]/g,'')+'_D'+(dayIdx+1):(times[dayIdx]||'latest');
+  const stamp='IC'+isoUTC(IC).replace(/[-:T]/g,'')+'_D'+(dayIdx+1)+'_'+product;
   o.toBlob(bl=>{const a=document.createElement('a'); a.href=URL.createObjectURL(bl);
     a.download='district_rain_'+stamp+'.png'; a.click(); URL.revokeObjectURL(a.href);});
 };
 document.getElementById('refresh').onclick=async()=>{
-  if (mode==='run' && IC){ await openRun(IC,true); return; }
-  try{ await loadForecast(true); buildDays(); renderHeader(); statusEl.classList.add('hide'); draw(); }
-  catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
+  const L=await loadManifest(); if (L){ srvList=L; buildRunList(L[0]>newestIC?L[0]:newestIC); }
+  if (IC) await openRun(IC); else await boot();
 };
 addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
 
@@ -627,7 +546,7 @@ addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
     layout();
     try{ const rs=await fetch('imd_subdivisions.json'); if(rs.ok){ SD=await rs.json();
       document.getElementById('sdlbl').hidden=false; document.getElementById('sdnlbl').hidden=false; } }catch(e){}
-    await bootArchive();
+    await boot();
   }catch(e){ statusEl.classList.remove('hide'); statusEl.textContent=e.message; }
 })();
 </script>
