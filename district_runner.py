@@ -351,7 +351,7 @@ def _imd_sftp():
         tr = paramiko.Transport((IMD_HOST, 22)); tr.banner_timeout = 60
         tr.connect(username=IMD_USER, password=pw)
         c = paramiko.SFTPClient.from_transport(tr); c.get_channel().settimeout(120)
-        _imd.update(c=c, t=tr)
+        _imd.update(c=c, t=tr, home=c.normalize("."))       # full paths from the home folder (as the cyclone script does)
     return _imd["c"]
 
 
@@ -366,7 +366,7 @@ def _imd_file(name, ic):
     except Exception as e:
         _imd["down"] = True
         raise RuntimeError("IMD login failed: %s" % e)
-    rem = (IMD_DIR % tag) + "/" + fn
+    rem = _imd["home"].rstrip("/") + "/" + (IMD_DIR % tag) + "/" + fn
     try:
         st = c.stat(rem)
     except IOError:
@@ -374,7 +374,11 @@ def _imd_file(name, ic):
     if time.time() - st.st_mtime < 300:        # still being written
         raise RuntimeError("being written: " + fn)
     loc = os.path.join(WORK, fn)
-    t0 = time.time(); c.get(rem, loc + ".part")
+    t0 = time.time()
+    try:
+        c.get(rem, loc + ".part")
+    except PermissionError:
+        raise RuntimeError("IMD server refused to send %s (permission denied)" % fn)
     if os.path.getsize(loc + ".part") != st.st_size:
         raise RuntimeError("incomplete download: " + fn)
     os.replace(loc + ".part", loc)
