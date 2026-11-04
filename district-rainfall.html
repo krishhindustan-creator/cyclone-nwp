@@ -140,7 +140,7 @@ const MODELS = {
   ARPEGE:{name:'Météo-France ARPEGE', grid:'0.25°, to day 4'},
   IMDGFS:{name:'IMD GFS', grid:'0.125°, to day 5'},
   NCUMG: {name:'NCUM-G',  grid:'0.18° × 0.12°'},
-  NCUMR: {name:'NCUM-R',  grid:'regional'}
+  NCUMR: {name:'NCUM-R',  grid:'regional, to day 3'}
 };
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
@@ -157,6 +157,24 @@ const BINS = [
   {min:204.5, label:'Extremely heavy (≥204.5)', color:'#c2185b'}
 ];
 const binOf = v => { let b = BINS[0]; for (const x of BINS) if (v >= x.min) b = x; return b; };
+// Chance of reaching an IMD category = share of the models whose district value is at or above its lower limit
+const PTH = [
+  {k:'P2', min:15.6,  short:'≥ Moderate',  name:'Moderate or more (≥ 15.6 mm)'},
+  {k:'P3', min:64.5,  short:'≥ Heavy',     name:'Heavy or more (≥ 64.5 mm)'},
+  {k:'P4', min:115.6, short:'≥ V. heavy',  name:'Very heavy or more (≥ 115.6 mm)'},
+  {k:'P5', min:204.5, short:'≥ Ext. heavy', name:'Extremely heavy (≥ 204.5 mm)'}
+];
+const PBINS = [
+  {min:0,  label:'0%',       color:'#eef1f4'},
+  {min:1,  label:'1–20%',    color:'#fff3b0'},
+  {min:21, label:'21–40%',   color:'#fdc65c'},
+  {min:41, label:'41–60%',   color:'#f7873a'},
+  {min:61, label:'61–80%',   color:'#d7301f'},
+  {min:81, label:'81–100%',  color:'#7f0021'}
+];
+const isProb = () => typeof product==='string' && product[0]==='P';
+const curBins = () => isProb() ? PBINS : BINS;
+const colorOf = v => { let b=curBins()[0]; for (const x of curBins()) if (v >= x.min) b = x; return b.color; };
 
 /* ---------- State ---------- */
 const cv = document.getElementById('map'), ctx = cv.getContext('2d');
@@ -263,7 +281,7 @@ function draw(){
   for (const f of feats){
     if (!visible(f)) continue;
     const v=f.rain[dayIdx];
-    ctx.fillStyle = v==null ? '#e3e7eb' : binOf(v).color;
+    ctx.fillStyle = v==null ? '#e3e7eb' : colorOf(v);
     path(f); ctx.fill('evenodd');
     ctx.strokeStyle='rgba(20,32,43,.4)'; ctx.lineWidth=Math.min(1.2,.4+Z.z*.06); ctx.stroke();
   }
@@ -313,7 +331,7 @@ function drawLabels(placed){
     const [x,y]=px(f.lon,f.lat);
     if (x<6||y<6||x>view.cssW-6||y>view.cssH-6) continue;
     const v=f.rain[dayIdx];
-    const l1=f.name||'', l2=v==null?'–':v.toFixed(1)+' mm';
+    const l1=f.name||'', l2=v==null?'–':(isProb()? Math.round(v)+'%' : v.toFixed(1)+' mm');
     const w=Math.max(ctx.measureText(l1).width,ctx.measureText(l2).width)+6, h=26;
     const r=[x-w/2,y-h/2,x+w/2,y+h/2];
     if (placed.some(q=>!(r[2]<q[0]||r[0]>q[2]||r[3]<q[1]||r[1]>q[3]))) continue;
@@ -359,7 +377,7 @@ async function loadManifest(){
 // MME = simple (equal-weight) mean of the models that cover that day
 function setProduct(){
   for (const f of feats){
-    f.rain = product==='MME' ? f.mme : (f.m[product]||new Array(DAYS).fill(null));
+    f.rain = product==='MME' ? f.mme : product==='MED' ? f.med : isProb() ? f.p[product] : (f.m[product]||new Array(DAYS).fill(null));
   }
 }
 async function getRunFile(ic, fresh){
@@ -397,15 +415,18 @@ async function loadRun(ic){
   for (const k of wanted) if (!M[k]){ const x=await laggedSeries(k, ic); if (x){ lag[k]=x.tag; L[k]=x.rows; } }
   const keys=Object.keys(MODELS).filter(k=>M[k]||L[k]).concat(own.filter(k=>!MODELS[k]));
   feats.forEach((f,i)=>{
-    f.m={}; f.mme=[]; f.mn=[];
+    f.m={}; f.mme=[]; f.med=[]; f.mn=[]; f.p={}; for (const t of PTH) f.p[t.k]=[];
     for (const k of keys) f.m[k]=M[k] ? M[k][i] : L[k][i];
     for (let d=0; d<DAYS; d++){
-      let s=0,n=0; for (const k of keys){ const v=f.m[k][d]; if (v!=null){ s+=v; n++; } }
-      f.mme.push(n? +(s/n).toFixed(1) : null); f.mn.push(n);
+      const a=[]; for (const k of keys){ const v=f.m[k][d]; if (v!=null) a.push(v); }
+      const n=a.length; a.sort((x,y)=>x-y);
+      f.mme.push(n? +(a.reduce((x,y)=>x+y,0)/n).toFixed(1) : null); f.mn.push(n);
+      f.med.push(n? +(n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2).toFixed(1) : null);   // median of the models
+      for (const t of PTH) f.p[t.k].push(n ? 100*a.filter(x=>x>=t.min).length/n : null);   // chance (%)
     }
   });
   runModels=keys; ownModels=own; lagged=lag; IC=ic;
-  if (product!=='MME' && !keys.includes(product)) product='MME';
+  if (product!=='MME' && product!=='MED' && !isProb() && !keys.includes(product)) product='MME';
   setProduct();
 }
 async function openRun(ic){
@@ -463,15 +484,16 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew
 
 /* ---------- UI ---------- */
 function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date(a.getTime()+24*HR)]; }
-function productLabel(){ return product==='MME' ? 'MME of '+runModels.length+' model'+(runModels.length===1?'':'s')+' ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')' : mLab(product)+', '+((MODELS[product]||{}).grid||''); }
+const pth = () => PTH.find(t=>t.k===product);
+function productLabel(){ return isProb() ? 'chance of '+pth().name+' = share of the '+runModels.length+' models reaching it' : product==='MED' ? 'MME median of '+runModels.length+' models' : product==='MME' ? 'MME (mean) of '+runModels.length+' model'+(runModels.length===1?'':'s')+' ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')' : mLab(product)+', '+((MODELS[product]||{}).grid||''); }
 function renderHeader(){
   const t=document.getElementById('ictxt'), s=document.getElementById('icsub');
-  t.textContent=(product==='MME'?'MME':mLab(product))+' · IC: '+fmtZY(IC);
+  t.textContent=(isProb()?'Chance of '+pth().short.replace('≥ ','')+(product==='P5'?'':' or more'):product==='MME'?'MME (mean)':product==='MED'?'MME median':mLab(product))+' · IC: '+fmtZY(IC);
   const short=runModels.filter(k=>feats.length && feats[0].m[k] && feats[0].m[k].some(v=>v==null));
   const miss=wanted.filter(k=>!runModels.includes(k));
   const lagK=runModels.filter(k=>lagged[k]);
   s.textContent='Models: '+runModels.map(mLab).join(', ')+'. Each model’s value is the highest forecast grid-point rainfall inside the district; '
-    +'MME is the simple mean of the models, all with equal weight. Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used.'
+    +'MME is the simple mean of the models, all with equal weight; MME median is the middle value of the models, which a single very wet or very dry model cannot pull up or down. Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used.'
     +(short.length?' '+short.map(k=>mName(k)+' (to '+(MODELS[k]&&/day \d+/.test(MODELS[k].grid)?MODELS[k].grid.match(/day \d+/)[0]:'fewer days')+')').join(' and ')+(short.length>1?' do':' does')+' not reach day 10, so the MME for the later days averages the remaining models.':'');
   const old=Date.now()-IC.getTime()>60*HR;
   const notes=[];
@@ -481,7 +503,8 @@ function renderHeader(){
   setWarn(notes.join(' '));
   document.getElementById('fn').textContent='Forecast: '+runModels.map(k=>mName(k)+' ('+((MODELS[k]||{}).grid||'')+')').join(', ')
     +', from the producers’ open data (IMD GFS and NCUM from IMD’s NWP server). A model whose run for this IC is not out yet is taken from its latest earlier run (up to '+LAG_MAX_H+' h older), for the same 24-h windows, and its run is shown in brackets, e.g. ECMWF IFS (12Z). For each model a district shows the maximum of the model’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
-    +'MME = simple (equal-weight) average of these district values. Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. '
+    +'Chance of a category = share of the models whose district value reaches its lower limit (e.g. 7 of 10 models ≥ 64.5 mm = 70% chance of heavy rain or more); with few models it moves in steps and is not calibrated against observations. '
+    +'MME = simple (equal-weight) average of these district values; MME median = their median (middle value; for an even number of models, the mean of the two middle values). Day n is the n-th 24 hours after the run’s initial condition (IC). Classes follow IMD’s 24-hour rainfall categories. '
     +'Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions); the black lines run along district edges. Not an official IMD product.';
   winLine();
 }
@@ -493,9 +516,11 @@ function winLine(){
 function buildProducts(){
   const box=document.getElementById('prod');
   box.innerHTML='<span style="color:var(--mute)">Map shows:</span>';
-  for (const k of ['MME'].concat(runModels)){
-    const b=document.createElement('button'); b.textContent=k==='MME'?'MME':mLab(k); b.setAttribute('aria-pressed',k===product);
-    b.onclick=()=>{ product=k; setProduct(); [...box.querySelectorAll('button')].forEach(c=>c.setAttribute('aria-pressed',c===b)); renderHeader(); draw(); };
+  for (const k of ['MME','MED'].concat(PTH.map(t=>t.k),runModels)){
+    const b=document.createElement('button'); const pt=PTH.find(t=>t.k===k);
+    b.textContent=k==='MME'?'MME (mean)':k==='MED'?'MME median':pt?'Chance '+pt.short:mLab(k);
+    if (pt) b.title='Share of the models forecasting '+pt.name; b.setAttribute('aria-pressed',k===product);
+    b.onclick=()=>{ product=k; setProduct(); buildLegend(); [...box.querySelectorAll('button')].forEach(c=>c.setAttribute('aria-pressed',c===b)); renderHeader(); draw(); };
     box.appendChild(b);
   }
 }
@@ -511,7 +536,7 @@ function buildDays(){
   }
 }
 function buildLegend(){
-  document.getElementById('legend').innerHTML=BINS.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
+  document.getElementById('legend').innerHTML=(isProb()?'<span style="font-weight:600">Chance (share of models):</span>':'')+curBins().map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
     +'<span><i style="height:0;border:0;border-top:3px solid #111;width:18px"></i>IMD subdivision boundary</span>';
 }
 
@@ -537,8 +562,16 @@ function showTip(e){
     h+='<tr'+(product===k?' class="on"':'')+'><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>'+mLab(k)+'</td><td class="v">'+fmt(v)+'</td></tr>';
   }
   const v=f.mme[dayIdx], n=f.mn[dayIdx];
-  h+='<tr class="mme'+(product==='MME'?' on':'')+'"><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>MME'+(n&&n<runModels.length?' ('+n+' models)':'')+'</td><td class="v">'+fmt(v)+'</td></tr></table>';
-  if (v!=null) h+='<div class="cat">MME: '+binOf(v).label.split(' (')[0]+'</div>';
+  const md=f.med[dayIdx];
+  h+='<tr class="mme'+(product==='MME'?' on':'')+'"><td><i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>MME (mean)'+(n&&n<runModels.length?' ('+n+' models)':'')+'</td><td class="v">'+fmt(v)+'</td></tr>';
+  h+='<tr'+(product==='MED'?' class="on"':'')+' style="font-weight:700"><td><i style="background:'+(md==null?'transparent':binOf(md).color)+'"></i>MME median</td><td class="v">'+fmt(md)+'</td></tr></table>';
+  if (v!=null) h+='<div class="cat">Mean: '+binOf(v).label.split(' (')[0]+' · Median: '+binOf(md).label.split(' (')[0]+'</div>';
+  if (n){
+    h+='<div class="cat" style="margin-top:6px;opacity:1;line-height:1.35"><b>Chance (share of models)</b>';
+    for (const t of PTH){ const c=Math.round(f.p[t.k][dayIdx]*n/100);
+      h+='<br><span'+(product===t.k?' style="color:#ffd479"':'')+'>'+t.short.replace('≥','≥')+': '+c+' of '+n+' ('+Math.round(100*c/n)+'%)</span>'; }
+    h+='</div>';
+  }
   tip.innerHTML=h;
   tip.style.display='block';
   if (innerWidth<=700 || e.pointerType==='touch'){        // phone: wide box above or below the finger
@@ -602,12 +635,12 @@ document.getElementById('png').onclick=()=>{
   const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
   c.fillStyle='#14202b'; c.textBaseline='top';
   c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
-  c.fillText('District-wise 24-h rainfall forecast (mm) · '+(product==='MME'?'MME ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')':mLab(product)+', district maximum'),12*d,10*d);
+  c.fillText('District-wise 24-h rainfall forecast (mm) · '+(isProb()?'Chance of '+pth().name+' (share of '+runModels.length+' models)':product==='MED'?'MME median ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')':product==='MME'?'MME mean ('+runModels.map(k=>k+(lagged[k]?' '+lagged[k]:'')).join(', ')+')':mLab(product)+', district maximum'),12*d,10*d);
   c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
   c.fillText('IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1]),12*d,38*d);
   c.drawImage(cv,0,top);
   let x=12*d, y=top+cv.height+8*d; c.font='500 '+Math.round(12*d)+'px system-ui,sans-serif';
-  for (const b of BINS){
+  for (const b of curBins()){
     const w=c.measureText(b.label).width+30*d;
     if (x+w>W-8*d){ x=12*d; y+=18*d; }
     c.fillStyle=b.color; c.fillRect(x,y,16*d,11*d); c.strokeStyle='#0004'; c.strokeRect(x,y,16*d,11*d);
