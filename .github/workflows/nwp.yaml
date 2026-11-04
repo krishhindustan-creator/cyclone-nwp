@@ -51,8 +51,8 @@ jobs:
           IMD_MAX_MINUTES: "10"  # if IMD's server is slow, give up on the IMD models after 10 min
           KEEP_DAYS: "15"
         run: python nwp_runner.py
-      - name: Add district rainfall page
-        run: cp district-rainfall.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
+      - name: Add district rainfall pages
+        run: cp index.html district-rainfall.html ens-district.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
       - name: District rainfall (10 models + MME; maximum over each district)
         continue-on-error: true
         timeout-minutes: 45
@@ -65,6 +65,14 @@ jobs:
         run: |
           pip install ecmwf-opendata
           python district_runner.py
+      - name: Ensemble District R/F Probability (ECMWF ENS, 50 members)
+        continue-on-error: true
+        timeout-minutes: 30
+        env:
+          FORCE:  ${{ github.event.inputs.force }}
+          RUN_ID: ${{ github.event.inputs.run_id }}
+          KEEP_DAYS: "7"
+        run: python ens_district_runner.py
       - name: Tab name (MME District Rainfall Forecast)
         run: |
           [ -f site/index.html ] && sed -i 's/ECMWF District Rainfall\( Forecast\)\?/MME District Rainfall Forecast/g' site/index.html || true
