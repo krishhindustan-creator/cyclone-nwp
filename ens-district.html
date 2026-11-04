@@ -570,7 +570,7 @@ function showTip(e){
     const below=e.clientY<r.top+r.height/2;
     tip.style.top=Math.max(8, below ? e.clientY+28 : e.clientY-hh-28)+'px';
   } else {
-    tip.style.maxWidth='';
+    tip.style.maxWidth='380px';
     const w=tip.offsetWidth||260, hh=tip.offsetHeight||200;
     tip.style.left=Math.min(e.clientX+14,innerWidth-w-8)+'px';
     tip.style.top=(e.clientY+14+hh>innerHeight ? Math.max(8,e.clientY-hh-10) : e.clientY+14)+'px';
