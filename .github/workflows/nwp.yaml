@@ -52,10 +52,10 @@ jobs:
           KEEP_DAYS: "15"
         run: python nwp_runner.py
       - name: Add district rainfall pages
-        run: cp index.html district-rainfall.html ens-district.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
+        run: cp index.html district-rainfall.html ens-district.html verify.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
       - name: District rainfall (10 models + MME; maximum over each district)
         continue-on-error: true
-        timeout-minutes: 45
+        timeout-minutes: 60
         env:
           FORCE:  ${{ github.event.inputs.force }}
           RUN_ID: ${{ github.event.inputs.run_id }}
@@ -74,6 +74,12 @@ jobs:
           RUN_ID: ${{ github.event.inputs.run_id }}
           KEEP_DAYS: "7"
         run: python ens_district_runner.py
+      - name: Verification (IMD gridded rainfall)
+        continue-on-error: true
+        timeout-minutes: 15
+        run: |
+          pip install imdlib
+          python verif_runner.py
       - name: Tab name (MME District Rainfall Forecast)
         run: |
           [ -f site/index.html ] && sed -i 's/ECMWF District Rainfall\( Forecast\)\?/MME District Rainfall Forecast/g' site/index.html || true
