@@ -29,7 +29,7 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
 #nv .cap{color:#fff;text-align:center;margin:0 0 8px;font-size:13px}
 .xlink{font-weight:700;font-size:16px;color:var(--acc);text-decoration:none;border:2px solid var(--acc);border-radius:6px;padding:5px 12px}.xlink:hover{background:var(--acc);color:var(--accfg)}
 </style></head><body>
-<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button><button id="t_district">MME District Rainfall Forecast</button><button id="t_ensdist">Ensemble District R/F Probability</button></nav>
+<header><h1 id="ttl">ECMWF Ensemble</h1><nav class="tabs"><button id="t_ens">ECMWF ENS</button><button id="t_mme">IMD MME</button><button id="t_adeck">A-Deck</button><button id="t_district">MME District Rainfall Forecast</button><button id="t_ensdist">Ensemble District R/F Probability</button><button id="t_verif">Verification</button></nav>
 <a class="xlink" href="https://krishhindustan-creator.github.io/rsrw-tphigrams/">⬅ T-phi grams</a></header>
 <main id="nwp"><div class="nwpbar"><b id="nwptitle"></b><select id="nwprun"></select><span class="mut" id="nwpinfo"></span></div>
 <div id="nwpnote"></div><div id="nwpcmp"></div><div class="nwpgrid" id="nwpgrid"></div><div class="files" id="nwpfiles"></div></main>
@@ -74,9 +74,9 @@ button{cursor:pointer}button[aria-pressed=true]{background:var(--acc);color:var(
   g('nwprun').onchange=draw;
   window.NWP_SHOW=function(k){kind=k;load().then(draw)};
 })();
-(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)',district:'MME District Rainfall Forecast',ensdist:'Ensemble District R/F Probability'},K=['ens','mme','adeck','district','ensdist'];
+(function(){const g=id=>document.getElementById(id),T={ens:'ECMWF Ensemble',mme:'IMD MME',adeck:'A-Deck (JTWC model tracks)',district:'MME District Rainfall Forecast',ensdist:'Ensemble District R/F Probability',verif:'Verification'},K=['ens','mme','adeck','district','ensdist','verif'];
  function tab(t){if(t==='archive')t='district';if(!T[t])t='ens';K.forEach(k=>g('t_'+k).setAttribute('aria-pressed',k===t));g('ttl').textContent=T[t];
-  const d=t==='district'||t==='ensdist',src=t==='ensdist'?'ens-district.html':'district-rainfall.html';g('nwp').style.display=d?'none':'';g('dist').style.display=d?'':'none';
+  const d=t==='district'||t==='ensdist'||t==='verif',src=t==='ensdist'?'ens-district.html':t==='verif'?'verify.html':'district-rainfall.html';g('nwp').style.display=d?'none':'';g('dist').style.display=d?'':'none';
   if(d){if(g('distf').getAttribute('src')!==src)g('distf').src=src}else window.NWP_SHOW(t);
   if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}
  K.forEach(k=>g('t_'+k).onclick=()=>tab(k));window.addEventListener('hashchange',()=>tab(location.hash.slice(1)));

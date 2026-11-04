@@ -158,6 +158,51 @@ def daily_from_acc(acc, ndays, offset=0):
     return days
 
 
+# ---- verification windows: IMD's observed day runs 03 UTC -> 03 UTC (08:30 IST). For each run, the first three
+# such days after the IC: 00 UTC runs +3..+27, +27..+51, +51..+75 h; 12 UTC runs +15..+39, +39..+63, +63..+87 h.
+CUR_IC = {"hour": 0}                                # set by main() before each model is fetched
+
+
+def vsteps(hour):
+    a = 3 if hour == 0 else 15
+    return [a, a + 24, a + 48, a + 72]
+
+
+def verif_from_acc(acc):
+    """24-h fields for the verification windows (None if the model cannot give them). Run totals at hours the
+    model does not output (6-hourly models) are interpolated linearly in time between the neighbouring outputs."""
+    cum = {0: 0}
+    for (a, b), v in acc.items():
+        if a == 0:
+            cum[b] = v
+    ends = sorted(cum)
+
+    def at(t):
+        if t in cum:
+            return cum[t]
+        lo = [e for e in ends if e < t]; hi = [e for e in ends if e > t]
+        if not lo or not hi or hi[0] - lo[-1] > 6:
+            raise KeyError(t)
+        a, b = lo[-1], hi[0]
+        return cum[a] + (cum[b] - cum[a]) * ((t - a) / (b - a))
+    vs = vsteps(CUR_IC["hour"]); out = []
+    for a, b in zip(vs[:-1], vs[1:]):
+        try:
+            out.append(np.clip(acc[(a, b)] if (a, b) in acc else at(b) - at(a), 0, None))
+        except KeyError:
+            out.append(None)
+    return out
+
+
+def steps_for(hour, every6=False, upto=24 * DAYS):
+    """Run-total steps to download: the daily ones plus those of the verification windows
+    (for 6-hourly models the outputs on either side of each 03/15 UTC step)."""
+    extra = set()
+    for t in vsteps(hour):
+        extra |= {t - 3, t + 3} if every6 else {t}
+    return sorted(x for x in set(STEPS) | extra if 0 < x <= upto)
+
+
 class Field:
     """Model output over the India box: lat, lon (1-D), the daily rainfall of this run (days) and the 24-h windows
     of the next run's days (shift); both lists of 1-D arrays or None."""
@@ -166,10 +211,13 @@ class Field:
         self.lat, self.lon, self.key = lat[sel], lon[sel], key
         self.days = [None if d is None else d[sel] for d in daily_from_acc(acc, ndays, 0)]
         self.shift = [None if d is None else d[sel] for d in daily_from_acc(acc, ndays, 12)]
+        self.verif = [None if d is None else d[sel] for d in verif_from_acc(acc)]
 
 
 def field_regular(msgs, ndays, key):
-    acc = {(m["start"], m["end"]): to_mm(m) for m in msgs}
+    acc = {}
+    for m in msgs:
+        acc[(m["start"], m["end"])] = to_mm(m)
     lat, lon = regular_latlon(msgs[0])
     return Field(lat, lon, acc, ndays, key)
 
@@ -182,7 +230,7 @@ def ymd_hh(ic):
     return ic.strftime("%Y%m%d"), ic.strftime("%H")
 
 
-def get_ecmwf(model, key, ic):
+def get_ecmwf(model, key, ic, every6=False):
     from ecmwf.opendata import Client
     target = os.path.join(WORK, "%s_%s.grib2" % (key, ic.strftime("%Y%m%d%H")))
     try:
@@ -190,8 +238,10 @@ def get_ecmwf(model, key, ic):
             client = Client(source="ecmwf", model=model, resol="0p25")
         except TypeError:
             client = Client(source="ecmwf")
-        client.retrieve(date=int(ic.strftime("%Y%m%d")), time=ic.hour, stream="oper", type="fc", param="tp",
-                        step=STEPS, target=target)
+        import contextlib, io
+        with contextlib.redirect_stderr(io.StringIO()):           # no download progress bars in the log
+            client.retrieve(date=int(ic.strftime("%Y%m%d")), time=ic.hour, stream="oper", type="fc", param="tp",
+                            step=steps_for(ic.hour, every6), target=target)
         msgs = read_msgs(target)
     finally:
         if os.path.exists(target):
@@ -204,13 +254,13 @@ def get_ifs(ic):
 
 
 def get_aifs(ic):
-    return get_ecmwf("aifs-single", "AIFS", ic)
+    return get_ecmwf("aifs-single", "AIFS", ic, every6=True)
 
 
-def _ncep(url_of):
+def _ncep(url_of, steps):
     """GFS-type output on AWS: for each step, the run-total APCP (0-N h) message, fetched by byte range."""
     msgs = []
-    for s in STEPS[::-1]:                        # last step first: fails fast while the run is still coming in
+    for s in steps[::-1]:                        # last step first: fails fast while the run is still coming in
         url = url_of(s)
         msgs += read_msgs(http_get(url, idx_range(url, r":APCP:surface:0-\d+ (hour|day) acc")))
     return msgs
@@ -220,11 +270,11 @@ def get_gfs(ic):
     ymd, hh = ymd_hh(ic)
     try:
         msgs = _ncep(lambda s: "https://noaa-gfs-bdp-pds.s3.amazonaws.com/gfs.%s/%s/atmos/gfs.t%sz.pgrb2.0p25.f%03d"
-                     % (ymd, hh, hh, s))
+                     % (ymd, hh, hh, s), steps_for(ic.hour))
     except Exception as e:                       # fall back to NOMADS (grib filter, India box only)
         print("    GFS on AWS: %s - trying NOMADS" % str(e)[:120], flush=True)
         msgs = []
-        for s in STEPS:
+        for s in steps_for(ic.hour):
             url = ("https://nomads.ncep.noaa.gov/cgi-bin/filter_gfs_0p25.pl?dir=%%2Fgfs.%s%%2F%s%%2Fatmos"
                    "&file=gfs.t%sz.pgrb2.0p25.f%03d&var_APCP=on&lev_surface=on&subregion=&toplat=%g&leftlon=%g"
                    "&rightlon=%g&bottomlat=%g" % (ymd, hh, hh, s, BOX[1], BOX[2], BOX[3], BOX[0]))
@@ -236,7 +286,7 @@ def get_gfs(ic):
 def get_aigfs(ic):
     ymd, hh = ymd_hh(ic)
     msgs = _ncep(lambda s: "https://noaa-nws-graphcastgfs-pds.s3.amazonaws.com/aigfs.%s/%s/model/atmos/grib2/"
-                 "aigfs.t%sz.sfc.f%03d.grib2" % (ymd, hh, hh, s))
+                 "aigfs.t%sz.sfc.f%03d.grib2" % (ymd, hh, hh, s), steps_for(ic.hour, every6=True))
     return field_regular(msgs, DAYS, "AIGFS")
 
 
@@ -248,7 +298,7 @@ _icon_grid = {}
 def get_icon(ic):
     ymd, hh = ymd_hh(ic); tag = ymd + hh
     acc = {}
-    for s in [x for x in STEPS if x <= 180][::-1]:   # last step first: fails fast while the run is still coming in
+    for s in steps_for(ic.hour, upto=180)[::-1]:   # last step first: fails fast while the run is still coming in
         raw = bz2.decompress(http_get(ICON_URL % (hh, "tot_prec", "single-level", tag, "_%03d_TOT_PREC" % s)))
         m = read_msgs(raw)[0]
         acc[(m["start"], m["end"])] = to_mm(m)
@@ -273,6 +323,12 @@ def get_gdps(ic):
         m = read_msgs(http_get(url))[0]
         m["units"] = "kg m**-2"                  # MSC parameter is not in the ecCodes tables; values are mm
         m["start"], m["end"] = s - 24, s         # 24-h total ending at the step
+        msgs.append(m)
+    for s in vsteps(ic.hour):                    # run totals for the verification windows (03/15 UTC)
+        url = ("https://dd.weather.gc.ca/%s/WXO-DD/model_gdps/15km/%s/%03d/%sT%sZ_MSC_GDPS_Precip-Accum_Sfc_LatLon0.15_PT%03dH.grib2"
+               % (ymd, hh, s, ymd, hh, s))
+        m = read_msgs(http_get(url))[0]
+        m["units"] = "kg m**-2"; m["start"], m["end"] = 0, s
         msgs.append(m)
     return field_regular(msgs, DAYS, "GDPS")
 
@@ -324,7 +380,9 @@ def stream_pick(url, want, n):
 def get_arpege(ic):
     iso = ic.strftime("%Y-%m-%dT%H:00:00Z")
     msgs = []
-    for pkg, steps in ARPEGE_PKG[::-1]:          # last package first: fails fast while the run is still coming in
+    vs = vsteps(ic.hour)
+    for k, (pkg, steps) in list(enumerate(ARPEGE_PKG))[::-1]:   # last package first: fails fast while the run is coming in
+        steps = tuple(sorted(set(steps) | {vs[k]}))               # + the verification step in this package
         got = stream_pick(ARPEGE_URL % (iso, pkg, iso), lambda sn, es, steps=steps: sn == "tp" and es in steps,
                           len(steps))
         if len(got) < len(steps):
@@ -502,6 +560,7 @@ def load_run(path):
         j["models"] = {"IFS": j.pop("max")}
     j.setdefault("models", {})
     j.setdefault("shift", {})
+    j.setdefault("verif", {})
     return j
 
 
@@ -520,18 +579,21 @@ def main():
     for ic in ics:
         tag = ic.strftime("%Y%m%d%H"); path = os.path.join(OUT, tag + ".json")
         run = (None if FORCE else load_run(path)) or {"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": {}, "shift": {}}
-        todo = [m for m in MODELS if m not in run["models"] or m not in run["shift"]]
+        run.setdefault("verif", {})
+        todo = [m for m in MODELS if m not in run["models"] or m not in run["shift"] or m not in run["verif"]]
         if not todo:
             continue
         changed = False
         for name in todo:
             t0 = time.time()
             try:
+                CUR_IC["hour"] = ic.hour
                 F = FETCH[name](ic)
                 if D is None:
                     D = load_districts()
                 run["models"][name] = district_max(D, F, F.days)
                 run["shift"][name] = district_max(D, F, F.shift)
+                run["verif"][name] = district_max(D, F, F.verif)
                 changed = True
                 print("  %s %-5s done (%.0f s, %d grid points in the India box)" % (tag, name, time.time() - t0, len(F.lat)),
                       flush=True)
@@ -541,6 +603,9 @@ def main():
             order = [m for m in FETCH if m in run["models"]]
             run["models"] = {m: run["models"][m] for m in order}
             run["shift"] = {m: run["shift"][m] for m in FETCH if m in run["shift"]}
+            run["verif"] = {m: run["verif"][m] for m in FETCH if m in run["verif"]}
+            vs = vsteps(ic.hour)
+            run["vwin"] = [(ic + dt.timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M") for h in vs[:-1]]   # window starts
             run["made"] = now.strftime("%Y-%m-%d %H:%M UTC")
             run["src"] = {m: INFO[m] for m in order}
             run["note"] = ("Value = maximum of the model grid-point values inside each district (mm per 24 h). "
