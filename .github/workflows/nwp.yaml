@@ -65,10 +65,11 @@ jobs:
         run: |
           pip install ecmwf-opendata
           python district_runner.py
-      - name: Ensemble District R/F Probability (ECMWF ENS, 50 members)
+      - name: Ensemble District R/F Probability (ECMWF ENS + GEFS + GEPS)
         continue-on-error: true
-        timeout-minutes: 30
+        timeout-minutes: 45
         env:
+          ENSEMBLES: "ECMWF,GEFS,GEPS"
           FORCE:  ${{ github.event.inputs.force }}
           RUN_ID: ${{ github.event.inputs.run_id }}
           KEEP_DAYS: "7"
