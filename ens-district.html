@@ -89,14 +89,15 @@
 <div class="wrap">
   <h1>Ensemble District R/F Probability</h1>
   <div class="icbar">
-    <div class="ic" id="ictxt">ECMWF ENS · finding latest run…</div>
-    <div class="icsub" id="icsub">24-hour district rainfall probability from the ECMWF ensemble</div>
+    <div class="ic" id="ictxt">Ensembles · finding latest run…</div>
+    <div class="icsub" id="icsub">24-hour district rainfall probability from ECMWF, GEFS and GEPS ensembles</div>
     <div class="icwarn" id="icwarn" hidden></div>
     <button id="about" type="button" aria-expanded="false">About this forecast ▾</button>
   </div>
   <p class="sub" id="win"></p>
   <div class="runbar" id="runbar" hidden><label for="runsel">Run (IC):</label><select id="runsel"></select></div>
 
+  <div class="prod" id="ensbar" role="group" aria-label="Ensembles"></div>
   <div class="prod" id="prod" role="group" aria-label="Map shows"></div>
   <div class="days" id="days" role="group" aria-label="Forecast day"></div>
 
@@ -353,7 +354,12 @@ const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMon
 const fmtZY=t=>fmtZ(t)+' '+t.getUTCFullYear();
 const fmtIST=t=>{const s=new Date(t.getTime()+5.5*HR);return p2(s.getUTCHours())+':'+p2(s.getUTCMinutes())+' IST '+p2(s.getUTCDate())+' '+MON[s.getUTCMonth()];};
 const QN=['Min','10%','25%','Median','75%','90%','Max'];
-const QHELP=['driest member','5 members below','about 12 members below','middle of the members','about 12 members above','5 members above','wettest member'];
+const QHELP=['driest member','10% of members are drier','25% of members are drier','middle of the members','25% of members are wetter','10% of members are wetter','wettest member'];
+const ENS={ECMWF:{name:'ECMWF ENS',grid:'0.25°'}, GEFS:{name:'NCEP GEFS',grid:'0.25°'}, GEPS:{name:'CMC GEPS',grid:'0.5°'}};
+const LIMS=[0.1,2.5,15.6,64.5,115.6,204.5];
+let SEL=new Set(Object.keys(ENS)), AVAIL={}, RAW={}, srvEns={};
+const selList=()=>Object.keys(ENS).filter(k=>SEL.has(k)&&AVAIL[k]);
+const selNames=()=>selList().map(k=>ENS[k].name).join(' + ');
 const STATS={MEAN:'Ensemble mean', MED:'Ensemble median', Q90:'90th percentile', MAX:'Wettest member'};
 let IC=null, NM=50, product='P3', quiet=false, updating=false;
 let srvList=[], newestIC=null, follow=true, retryTimer=null, busy=0;
@@ -364,29 +370,64 @@ function retrySoon(){ clearTimeout(retryTimer); retryTimer=setTimeout(checkNew,1
 async function loadManifest(){
   try{
     const r=await fetch('ensdistrict/manifest.json?t='+Date.now(),{cache:'no-store'}); if(!r.ok) return null;
-    const m=await r.json();
-    const L=(m.runs||[]).map(x=>new Date(x.ic+':00Z')).filter(d=>!isNaN(d));
+    const m=await r.json(); srvEns={};
+    const L=(m.runs||[]).filter(x=>x.ens).map(x=>{ const d=new Date(x.ic+':00Z'); srvEns[isoUTC(d)]=x.ens; return d; }).filter(d=>!isNaN(d));
     return L.length?L:null;
   }catch(e){ return null; }
 }
 function setProduct(){
   for (const f of feats){
-    f.rain = isProb() ? f.p[product] : product==='MEAN' ? f.mean : product==='MED' ? f.q.map(r=>r[3])
-           : product==='Q90' ? f.q.map(r=>r[5]) : f.q.map(r=>r[6]);
+    f.rain = isProb() ? f.p[product] : product==='MEAN' ? f.mean : product==='MED' ? f.q.map(r=>r&&r[3])
+           : product==='Q90' ? f.q.map(r=>r&&r[5]) : f.q.map(r=>r&&r[6]);
   }
 }
-async function loadRun(ic){
-  const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10);
-  const r=await fetch('ensdistrict/'+tag+'.json?t='+Date.now(),{cache:'no-store'});
-  if(!r.ok) throw new Error('run file not found ('+r.status+')');
-  const j=await r.json();
-  if (!j.q || j.q.length!==feats.length) throw new Error('run file does not match the district map');
-  NM=j.members; const LIM=j.limits;
+const qtl=(a,p)=>{ const h=(a.length-1)*p, lo=Math.floor(h); return lo+1<a.length ? a[lo]+(a[lo+1]-a[lo])*(h-lo) : a[lo]; };
+// pool the members of the selected ensembles (every member counts equally)
+function combine(){
+  const ks=selList(); NM=ks.reduce((n,k)=>n+AVAIL[k],0);
   feats.forEach((f,i)=>{
-    f.q=j.q[i]; f.mean=j.mean[i]; f.cnt=j.cnt[i]; f.p={};
-    for (const t of PTH){ const x=LIM.indexOf(t.min); f.p[t.k]=f.cnt.map(c=>100*c[x]/NM); }
+    f.q=[]; f.mean=[]; f.cnt=[]; f.ec=[]; f.p={}; for (const t of PTH) f.p[t.k]=[];
+    for (let d=0; d<DAYS; d++){
+      let a=[]; const ec={};
+      for (const k of ks){ const v=RAW[k][i][d]||[]; a=a.concat(v); ec[k]=LIMS.map(L=>v.filter(x=>x>=L).length); }
+      if (!a.length){ f.q.push(null); f.mean.push(null); f.cnt.push(null); f.ec.push(ec); for (const t of PTH) f.p[t.k].push(null); continue; }
+      a.sort((x,y)=>x-y);
+      f.q.push(QUANTS.map(p=>+qtl(a,p).toFixed(1)));
+      f.mean.push(+(a.reduce((x,y)=>x+y,0)/a.length).toFixed(1));
+      const c=LIMS.map(L=>{ const i=a.findIndex(x=>x>=L); return i<0 ? 0 : a.length-i; });
+      f.cnt.push(c); f.ec.push(ec);
+      for (const t of PTH) f.p[t.k].push(100*c[LIMS.indexOf(t.min)]/a.length);
+    }
   });
-  IC=ic; setProduct();
+  setProduct();
+}
+const QUANTS=[0,.1,.25,.5,.75,.9,1];
+async function loadRun(ic){
+  const tag=isoUTC(ic).replace(/\D/g,'').slice(0,10), have=srvEns[isoUTC(ic)]||{};
+  AVAIL={}; RAW={};
+  await Promise.all(Object.keys(have).map(async k=>{
+    const r=await fetch('ensdistrict/'+tag+'_'+k+'.json?t='+Date.now(),{cache:'no-store'});
+    if(!r.ok) return;
+    const j=await r.json();
+    if (!j.v || j.v.length!==feats.length) return;
+    RAW[k]=j.v; AVAIL[k]=j.members;
+  }));
+  if (!Object.keys(AVAIL).length) throw new Error('no ensemble data for this run');
+  if (!selList().length) SEL=new Set(Object.keys(AVAIL));
+  IC=ic; combine();
+}
+function buildEnsBar(){
+  const box=document.getElementById('ensbar');
+  box.innerHTML='<span style="color:var(--mute)">Ensembles:</span>';
+  for (const k of Object.keys(ENS)){
+    const b=document.createElement('button'), ok=!!AVAIL[k];
+    b.textContent=ENS[k].name+(ok?' ('+AVAIL[k]+')':' (not yet)'); b.disabled=!ok;
+    b.title=ok?'Include the '+AVAIL[k]+' members of '+ENS[k].name:ENS[k].name+' is not out yet for this run';
+    b.setAttribute('aria-pressed',ok&&SEL.has(k));
+    b.onclick=()=>{ if (SEL.has(k)){ if (selList().length===1) return; SEL.delete(k); } else SEL.add(k);
+      combine(); buildEnsBar(); renderHeader(); draw(); };
+    box.appendChild(b);
+  }
 }
 async function openRun(ic){
   busy++;
@@ -394,7 +435,7 @@ async function openRun(ic){
     if (quiet) setWarn('Loading '+fmtZY(ic)+'…'); else setStatus('Loading run '+fmtZY(ic)+'…');
     await loadRun(ic);
     const sel=document.getElementById('runsel'); if (sel.options && sel.options.length) sel.value=isoUTC(ic);
-    setWarn(''); buildProducts(); buildDays(); buildLegend(); renderHeader(); statusEl.classList.add('hide'); draw();
+    setWarn(''); buildEnsBar(); buildProducts(); buildDays(); buildLegend(); renderHeader(); statusEl.classList.add('hide'); draw();
     return true;
   }catch(e){
     const msg='Could not load run '+fmtZY(ic)+': '+e.message+'.';
@@ -407,7 +448,8 @@ async function openRun(ic){
 function buildRunList(newest){
   newestIC=newest;
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
-  sel.innerHTML=srvList.map((t,k)=>'<option value="'+isoUTC(t)+'">'+fmtZY(t)+(k===0?'  (latest)':'')+'</option>').join('');
+  sel.innerHTML=srvList.map((t,k)=>{ const e=Object.keys(srvEns[isoUTC(t)]||{});
+    return '<option value="'+isoUTC(t)+'">'+fmtZY(t)+'  ('+e.length+' of 3 ensembles'+(k===0?', latest':'')+')</option>'; }).join('');
   if (IC) sel.value=isoUTC(IC);
   sel.onchange=()=>{ follow=(sel.value===isoUTC(newestIC)); openRun(new Date(sel.value+':00Z')); };
 }
@@ -416,7 +458,7 @@ async function boot(){
   try{
     setStatus('Finding latest run…');
     const L=await loadManifest();
-    if (!L){ setStatus('No ensemble data yet (ensdistrict/manifest.json). The workflow writes it after each 00/12 UTC ECMWF ENS run.'); return; }
+    if (!L){ setStatus('No ensemble data yet (ensdistrict/manifest.json). The workflow writes it after each 00/12 UTC ensemble run.'); return; }
     srvList=L; follow=true; buildRunList(L[0]);
     if (!(await openRun(L[0])) && L[1]) await openRun(L[1]);
   } finally{ busy--; }
@@ -427,7 +469,12 @@ async function checkNew(){
   try{
     const L=await loadManifest(); if (!L) return;
     srvList=L;
-    if (!newestIC || L[0]>newestIC){ buildRunList(L[0]); if (follow) await openRun(L[0]); } else buildRunList(newestIC);
+    if (!newestIC || L[0]>newestIC){ buildRunList(L[0]); if (follow) await openRun(L[0]); }
+    else{ buildRunList(newestIC);
+      if (IC && Object.keys(srvEns[isoUTC(IC)]||{}).length>Object.keys(AVAIL).length){
+        const before=new Set(Object.keys(AVAIL)); await openRun(IC);
+        for (const k of Object.keys(AVAIL)) if (!before.has(k)) SEL.add(k);      // a newly arrived ensemble is switched on
+        combine(); buildEnsBar(); renderHeader(); draw(); } }
   }catch(e){} finally{ updating=false; quiet=false; }
 }
 setInterval(checkNew,5*60e3);
@@ -437,16 +484,17 @@ document.addEventListener('visibilitychange',()=>{ if(!document.hidden) checkNew
 function windowOf(i){ const a=new Date(IC.getTime()+24*i*HR); return [a,new Date(a.getTime()+24*HR)]; }
 const pth = () => PTH.find(t=>t.k===product);
 function productName(){ return isProb() ? 'Chance of '+pth().short.replace('≥ ','')+(product==='P5'?'':' or more') : STATS[product]; }
-function productLabel(){ return isProb() ? 'chance of '+pth().name+' = share of the '+NM+' ECMWF ENS members reaching it'
-  : STATS[product]+' of the '+NM+' members (district maximum of each member)'; }
+function productLabel(){ return isProb() ? 'chance of '+pth().name+' = share of the '+NM+' members ('+selNames()+') reaching it'
+  : STATS[product]+' of the '+NM+' members ('+selNames()+'; district maximum of each member)'; }
 function renderHeader(){
-  document.getElementById('ictxt').textContent=productName()+' · ECMWF ENS · IC: '+fmtZY(IC);
-  document.getElementById('icsub').textContent='ECMWF ensemble, '+NM+' members (0.25°). For each member, a district’s value is the highest forecast grid-point rainfall inside it; '
-    +'the chance of a category is the share of members reaching its lower limit (e.g. 38 of 50 members ≥ 115.6 mm = 76% chance of very heavy rain or more). Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used.';
-  document.getElementById('fn').textContent='Forecast: ECMWF ensemble (ENS), '+NM+' perturbed members at 0.25°, from ECMWF open data (CC BY 4.0); the control member is not in the open data. '
+  document.getElementById('ictxt').textContent=productName()+' · '+selNames()+' · IC: '+fmtZY(IC);
+  document.getElementById('icsub').textContent=selNames()+': '+NM+' members together, each member counting equally. For each member, a district’s value is the highest forecast grid-point rainfall inside it; '
+    +'the chance of a category is the share of members reaching its lower limit (e.g. 64 of '+NM+' members ≥ 64.5 mm = '+Math.round(6400/NM)+'% chance of heavy rain or more). Day 1 is the first 24 h after the IC. Only 00 and 12 UTC runs are used. Use the Ensembles buttons to choose which ensembles are pooled.';
+  document.getElementById('fn').textContent='Ensembles: ECMWF ENS (50 perturbed members, 0.25°, ECMWF open data, CC BY 4.0; the control is not in the open data), '
+    +'NCEP GEFS (control + 30 members, 0.25°, NOAA open data) and CMC GEPS (control + 20 members, 0.5°, ECCC MSC Datamart). '
     +'For each member a district shows the maximum of the member’s grid-point values that lie inside it; a district too small to contain a grid point uses the nearest one. '
-    +'Chance = share of members at or above the category’s lower limit (IMD 24-hour rainfall categories); it is the raw ensemble frequency, not calibrated against observations. '
-    +'Percentiles are taken over the members’ district values (e.g. 90% = 5 of 50 members are wetter). Day n is the n-th 24 hours after the run’s initial condition (IC). '
+    +'Selected ensembles are pooled member by member, so a larger ensemble counts more. Chance = share of members at or above the category’s lower limit (IMD 24-hour rainfall categories); '
+    +'it is the raw ensemble frequency, not calibrated against observations. Percentiles are taken over the members’ district values. Day n is the n-th 24 hours after the run’s initial condition (IC). '
     +'Scroll or pinch to zoom, drag to pan. Subdivision membership of each district follows IMD’s subdivision map (36 subdivisions). Not an official IMD product.';
   winLine();
 }
@@ -501,9 +549,12 @@ function showTip(e){
   let h='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span>':'');
   h+='<table><tr><td colspan="2" style="padding-top:2px;font-weight:700">Chance ('+NM+' members)</td></tr>';
   for (const t of PTH){
-    const c=f.cnt[dayIdx][[0.1,2.5,15.6,64.5,115.6,204.5].indexOf(t.min)], pc=Math.round(100*c/NM);
+    const c=f.cnt[dayIdx][LIMS.indexOf(t.min)], pc=Math.round(100*c/NM);
     h+='<tr'+(product===t.k?' class="on"':'')+'><td>'+sw(colorOf2(pc))+t.short+'</td><td class="v">'+c+' of '+NM+' ('+pc+'%)</td></tr>';
   }
+  const tk=isProb()?pth():PTH.find(t=>t.k==='P3'), li=LIMS.indexOf(tk.min), ec=f.ec[dayIdx];
+  if (selList().length>1) h+='<tr><td colspan="2" style="opacity:.85;font-size:.76rem;padding-top:3px">'+tk.short+': '
+    +selList().map(k=>k+' '+ec[k][li]+'/'+AVAIL[k]).join(' · ')+'</td></tr>';
   const q=f.q[dayIdx];
   h+='<tr class="mme"><td colspan="2">Members’ rainfall</td></tr>';
   q.forEach((v,i)=>{ const on=(product==='MED'&&i===3)||(product==='Q90'&&i===5)||(product==='MAX'&&i===6);
@@ -575,7 +626,7 @@ document.getElementById('png').onclick=()=>{
   const c=o.getContext('2d'); c.fillStyle='#fff'; c.fillRect(0,0,o.width,o.height);
   c.fillStyle='#14202b'; c.textBaseline='top';
   c.font='700 '+Math.round(19*d)+'px system-ui,sans-serif';
-  c.fillText('Ensemble District R/F Probability · ECMWF ENS ('+NM+' members) · '+productLabel(),12*d,10*d);
+  c.fillText('Ensemble District R/F Probability · '+productLabel(),12*d,10*d);
   c.font='600 '+Math.round(14*d)+'px system-ui,sans-serif';
   c.fillText('IC: '+fmtZY(IC)+'   |   Day '+(dayIdx+1)+': '+fmtZ(windowOf(dayIdx)[0])+' → '+fmtZ(windowOf(dayIdx)[1]),12*d,38*d);
   c.drawImage(cv,0,top);
@@ -586,7 +637,7 @@ document.getElementById('png').onclick=()=>{
     c.fillStyle=b.color; c.fillRect(x,y,16*d,11*d); c.strokeStyle='#0004'; c.strokeRect(x,y,16*d,11*d);
     c.fillStyle='#14202b'; c.fillText(b.label,x+22*d,y-1*d); x+=w+8*d;
   }
-  const stamp='IC'+isoUTC(IC).replace(/[-:T]/g,'')+'_D'+(dayIdx+1)+'_'+product;
+  const stamp='IC'+isoUTC(IC).replace(/[-:T]/g,'')+'_D'+(dayIdx+1)+'_'+product+'_'+selList().join('-');
   o.toBlob(bl=>{const a=document.createElement('a'); a.href=URL.createObjectURL(bl);
     a.download='district_rain_'+stamp+'.png'; a.click(); URL.revokeObjectURL(a.href);});
 };
