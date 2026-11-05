@@ -1,0 +1,50 @@
+name: iRAINS API test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ask iRAINS for one day of district rainfall
+        env:
+          IRAINS_USER: ${{ secrets.IRAINS_USER }}
+          IRAINS_PASS: ${{ secrets.IRAINS_PASS }}
+        run: |
+          python3 - <<'EOF'
+          import datetime as dt, json, os, socket, urllib.request
+          host, port = "irainshydro.imd.gov.in", 3000
+          url = "https://%s:%d/api/v1/fetchDistrictDataAPIexport" % (host, port)
+          day = (dt.date.today() - dt.timedelta(days=2)).isoformat()
+          print("Secrets present:", bool(os.environ.get("IRAINS_USER")), bool(os.environ.get("IRAINS_PASS")))
+          try:
+              socket.create_connection((host, port), timeout=20).close()
+              print("1. Connection to the server: OK")
+          except Exception as e:
+              print("1. Connection to the server FAILED:", type(e).__name__, e)
+              raise SystemExit(1)
+          body = json.dumps({"user": os.environ["IRAINS_USER"], "pass": os.environ["IRAINS_PASS"],
+                             "fromDate": day, "toDate": day}).encode()
+          req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
+          try:
+              with urllib.request.urlopen(req, timeout=120) as r:
+                  raw = r.read()
+              print("2. HTTP status:", r.status, "-", len(raw), "bytes")
+          except Exception as e:
+              print("2. Request FAILED:", type(e).__name__, str(e)[:200])
+              raise SystemExit(1)
+          j = json.loads(raw)
+          data = j.get("data") or []
+          print("3. success:", j.get("success"), "| message:", j.get("message"), "| districts:", len(data), "| day:", day)
+          for d in data[:3]:
+              print("   ", d)
+          json.dump(j, open("irains_sample.json", "w"), indent=1)
+          EOF
+      - name: Keep the response (rainfall data only, no password) for building the district table
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: irains-sample
+          path: irains_sample.json
+          if-no-files-found: ignore
