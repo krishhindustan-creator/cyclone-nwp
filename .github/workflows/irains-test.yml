@@ -13,7 +13,7 @@ jobs:
           IRAINS_PASS: ${{ secrets.IRAINS_PASS }}
         run: |
           python3 - <<'EOF'
-          import datetime as dt, json, os, socket, urllib.request
+          import datetime as dt, json, os, socket, urllib.error, urllib.request
           host, port = "irainshydro.imd.gov.in", 3000
           url = "https://%s:%d/api/v1/fetchDistrictDataAPIexport" % (host, port)
           day = (dt.date.today() - dt.timedelta(days=2)).isoformat()
@@ -24,13 +24,20 @@ jobs:
           except Exception as e:
               print("1. Connection to the server FAILED:", type(e).__name__, e)
               raise SystemExit(1)
-          body = json.dumps({"user": os.environ["IRAINS_USER"], "pass": os.environ["IRAINS_PASS"],
+          u, pw = os.environ["IRAINS_USER"], os.environ["IRAINS_PASS"]
+          print("   user ID length:", len(u), "| password length:", len(pw),
+                "| spaces or line breaks at the ends:", u != u.strip() or pw != pw.strip())
+          body = json.dumps({"user": u.strip(), "pass": pw.strip(),
                              "fromDate": day, "toDate": day}).encode()
           req = urllib.request.Request(url, data=body, headers={"Content-Type": "application/json"})
           try:
               with urllib.request.urlopen(req, timeout=120) as r:
                   raw = r.read()
               print("2. HTTP status:", r.status, "-", len(raw), "bytes")
+          except urllib.error.HTTPError as e:
+              print("2. Request FAILED:", e.code, e.reason)
+              print("   server's message:", e.read()[:300].decode("utf-8", "replace"))
+              raise SystemExit(1)
           except Exception as e:
               print("2. Request FAILED:", type(e).__name__, str(e)[:200])
               raise SystemExit(1)
