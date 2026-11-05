@@ -52,7 +52,7 @@ jobs:
           KEEP_DAYS: "15"
         run: python nwp_runner.py
       - name: Add district rainfall pages
-        run: cp index.html district-rainfall.html ens-district.html verify.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
+        run: cp *.html india_districts.geojson imd_subdivisions.json site/ || echo "district files not found"
       - name: District rainfall (10 models + MME; maximum over each district)
         continue-on-error: true
         timeout-minutes: 60
