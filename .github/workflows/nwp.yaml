@@ -74,12 +74,29 @@ jobs:
           RUN_ID: ${{ github.event.inputs.run_id }}
           KEEP_DAYS: "7"
         run: python ens_district_runner.py
+      - name: Verification archive (branch verif-archive, kept for ever)
+        continue-on-error: true
+        run: |
+          git clone -q --depth 1 -b verif-archive "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" archive \
+            || (mkdir -p archive && cd archive && git init -q -b verif-archive)
       - name: Verification (IMD gridded rainfall)
         continue-on-error: true
         timeout-minutes: 15
+        env:
+          VERIF_ARCHIVE: archive
         run: |
           pip install imdlib
           python verif_runner.py
+      - name: Save the verification archive
+        continue-on-error: true
+        run: |
+          cd archive
+          git config user.name  "nwp-bot"
+          git config user.email "nwp-bot@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then echo "archive unchanged"; exit 0; fi
+          git commit -q -m "Verification archive $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -q "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" verif-archive
       - name: Tab name (MME District Rainfall Forecast)
         run: |
           [ -f site/index.html ] && sed -i 's/ECMWF District Rainfall\( Forecast\)\?/MME District Rainfall Forecast/g' site/index.html || true
