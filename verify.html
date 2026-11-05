@@ -381,10 +381,26 @@ function icFor(day, ld){ const d=new Date(day+'T00:00Z'); return ld.H===12 ? new
 const leadLabel=ld=>'Day '+ld.L+' · '+p2(ld.H)+' UTC run of '+(ld.H===12 ? (ld.L===1?'the day before':ld.L+' days before') : (ld.L===1?'the same day':(ld.L-1)+' day'+(ld.L>2?'s':'')+' before'));
 const runCache={}, obsCache={};
 async function getJSON(u){ try{ const r=await fetch(u+'?t='+Date.now(),{cache:'no-store'}); return r.ok ? await r.json() : null; }catch(e){ return null; } }
-async function obsOf(day){ if(!(day in obsCache)) obsCache[day]=await getJSON('verif/obs_'+day.replace(/-/g,'')+'.json'); return obsCache[day]; }
+// permanent archive: verif/archive/YYYY/YYYYMMDD.json (observed + all six forecasts of the day); older days live only there
+const recCache={};
+async function recOf(day){ if(!(day in recCache)) recCache[day]=await getJSON('verif/archive/'+day.slice(0,4)+'/'+day.replace(/-/g,'')+'.json'); return recCache[day]; }
+async function obsOf(day){
+  if(!(day in obsCache)){ const r=await recOf(day); obsCache[day]= r&&r.obs ? {max:r.obs} : await getJSON('verif/obs_'+day.replace(/-/g,'')+'.json'); }
+  return obsCache[day]; }
 async function runOf(ic){ const t=isoUTC(ic).replace(/\D/g,'').slice(0,10); if(!(t in runCache)) runCache[t]=await getJSON('district/'+t+'.json'); return runCache[t]; }
 // forecasts for the observed day: every model's district maximum for 03 UTC day -> 03 UTC next day, plus MME mean / median
 async function fcOf(day, ld){
+  const rec=await recOf(day);
+  if (rec && rec.fc && rec.fc[ld.k]){
+    const M=rec.fc[ld.k].models, ks=Object.keys(VMODELS).filter(m=>M[m]), F={_models:ks};
+    for (const m of ks) F[m]=M[m];
+    F.MME=[]; F.MED=[];
+    for (let i=0;i<feats.length;i++){
+      const a=ks.map(m=>F[m][i]).filter(v=>v!=null).sort((x,y)=>x-y), n=a.length;
+      F.MME.push(n ? a.reduce((x,y)=>x+y,0)/n : null); F.MED.push(n ? (n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2) : null);
+    }
+    return F;
+  }
   const j=await runOf(icFor(day,ld)), k=ld.L-1;
   if (!j || !j.verif || !j.vwin || j.vwin[k]!==day+'T03:00') return null;
   const ks=Object.keys(VMODELS).filter(m=>j.verif[m] && j.verif[m].some(r=>r[k]!=null)), F={_models:ks};
@@ -452,17 +468,21 @@ function buildLegend(){
 }
 async function scoreTable(){
   const box=document.getElementById('scores'), t=thr().min;
-  const days = SCOPE==='day' ? [DAY] : OBSDAYS.slice();
+  const days = periodDays();
   const tot={}; let used=0, nObs=0;
+  let k_=0;
   for (const d of days){
+    if (days.length>5 && ++k_%5===0) box.innerHTML='<p class="cap">Loading '+k_+' of '+days.length+' days…</p>';
     const o=await obsOf(d), F=await fcOf(d,LEAD); if (!o || !F) continue; used++;
     nObs+=o.max.filter(v=>v!=null&&v>=t).length;
     for (const k of ['MED','MME'].concat(F._models)){ const c=count(o.max,F[k],t); const T=tot[k]||(tot[k]={h:0,m:0,f:0,c:0}); T.h+=c.h; T.m+=c.m; T.f+=c.f; T.c+=c.c; }
   }
   let h='<p class="cap"><b>Scores for '+thr().name+'</b> · '+leadLabel(LEAD)+' · '
-    +(SCOPE==='day' ? fmtD(DAY) : used+' observed day'+(used===1?'':'s')+' together')+' · observed districts at or above the threshold: '+nObs
-    +' &nbsp; <button id="scopebtn">'+(SCOPE==='day'?'Show all available days':'Show only '+fmtD(DAY))+'</button></p>';
-  if (!used){ box.innerHTML=h+'<p class="cap">No forecast available for this choice.</p>'; document.getElementById('scopebtn').onclick=()=>{SCOPE=SCOPE==='day'?'all':'day';scoreTable();}; return; }
+    +(SCOPE==='day' ? fmtD(DAY) : periodName()+': '+used+' of '+days.length+' observed day'+(days.length===1?'':'s')+' with this forecast')+' · observed districts at or above the threshold: '+nObs
+    +'</p><p class="cap"><label for="period">Scores over: </label><select id="period">'+periodOptions()+'</select>'
+    +' &nbsp; <a href="verif/archive/scores.csv" download>Download all daily scores (CSV)</a></p>';
+  const wire=()=>{ const ps=document.getElementById('period'); ps.value=SCOPE; ps.onchange=()=>{ SCOPE=ps.value; scoreTable(); }; };
+  if (!used){ box.innerHTML=h+'<p class="cap">No forecast available for this choice.</p>'; wire(); return; }
   const rows=Object.keys(tot).map(k=>{ const T=tot[k];
     return {k, T, pod:T.h+T.m?T.h/(T.h+T.m):null, far:T.h+T.f?T.f/(T.h+T.f):null, csi:T.h+T.m+T.f?T.h/(T.h+T.m+T.f):null, bias:T.h+T.m?(T.h+T.f)/(T.h+T.m):null}; });
   const best=Math.max(...rows.map(r=>r.csi==null?-1:r.csi));
@@ -471,12 +491,28 @@ async function scoreTable(){
   for (const r of rows) h+='<tr'+(r.k==='MED'||r.k==='MME'?' class="mm"':'')+'><td>'+SRCNAME(r.k)+'</td><td>'+r.T.h+'</td><td>'+r.T.m+'</td><td>'+r.T.f
     +'</td><td>'+f2(r.pod)+'</td><td>'+f2(r.far)+'</td><td'+(r.csi!=null&&r.csi===best&&best>0?' class="best"':'')+'>'+f2(r.csi)+'</td><td>'+f2(r.bias)+'</td></tr>';
   box.innerHTML=h+'</table>';
-  document.getElementById('scopebtn').onclick=()=>{SCOPE=SCOPE==='day'?'all':'day';scoreTable();};
+  wire();
 }
+// ---- periods for the score table: one day, recent days, months, IMD seasons, the whole archive
+const SEASONS=[['Winter (Jan–Feb)',[1,2]],['Pre-monsoon (Mar–May)',[3,4,5]],['Monsoon (Jun–Sep)',[6,7,8,9]],['Post-monsoon (Oct–Dec)',[10,11,12]]];
+function periodList(){
+  const L=[['day','Only the selected day',()=>[DAY]],['last7','Last 7 days',()=>OBSDAYS.slice(0,7)],['last30','Last 30 days',()=>OBSDAYS.slice(0,30)]];
+  const months=[...new Set(OBSDAYS.map(d=>d.slice(0,7)))];
+  for (const m of months){ const d=new Date(m+'-01T00:00Z'); L.push(['m'+m, MON[d.getUTCMonth()]+' '+d.getUTCFullYear(), ()=>OBSDAYS.filter(x=>x.startsWith(m))]); }
+  const years=[...new Set(OBSDAYS.map(d=>d.slice(0,4)))];
+  for (const y of years) for (const [nm,ms] of SEASONS){
+    const ds=OBSDAYS.filter(x=>x.startsWith(y)&&ms.includes(+x.slice(5,7)));
+    if (ds.length) L.push(['s'+y+nm, nm+' '+y, ()=>ds]); }
+  L.push(['all','Whole archive',()=>OBSDAYS.slice()]);
+  return L;
+}
+const periodDays=()=>{ const p=periodList().find(x=>x[0]===SCOPE)||periodList()[0]; return p[2](); };
+const periodName=()=>(periodList().find(x=>x[0]===SCOPE)||periodList()[0])[1];
+const periodOptions=()=>periodList().map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join('');
 async function boot(){
   setStatus('Loading observed days…');
-  const m=await getJSON('verif/manifest.json');
-  OBSDAYS=(m&&m.days)||[];
+  const m=await getJSON('verif/manifest.json'), ai=await getJSON('verif/archive/index.json');
+  OBSDAYS=[...new Set(((m&&m.days)||[]).concat((ai&&ai.days)||[]))].sort().reverse();
   if (!OBSDAYS.length){ setStatus('No observed rainfall yet (verif/manifest.json). The workflow writes it each day from IMD gridded rainfall.'); return; }
   DAY=OBSDAYS[0];
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;

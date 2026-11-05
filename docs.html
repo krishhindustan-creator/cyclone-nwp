@@ -238,7 +238,14 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <tr><td>CSI</td><td>hits ÷ (hits + misses + false alarms)</td><td>1</td></tr>
 <tr><td>Bias</td><td>(hits + false alarms) ÷ (hits + misses); above 1 = over-forecasting</td><td>1</td></tr>
 </table></div>
-<p>Districts without observed data are left out. Scores can be shown for one day or added up over all available days. Observed days are kept for 10 days; forecasts with verification windows for 7 days.</p>
+<p>Districts without observed data are left out.</p>
+<h3>Permanent archive: monthly and seasonal verification</h3>
+<ul>
+  <li>Every observed day is stored for good in an archive (a separate branch, <code>verif-archive</code>, of the site's repository, also copied to the site as <code>verif/archive/</code>). Each day's file holds the observed district values and every model's district values for the six forecasts of that day (Day 1, 2 and 3 from the 12 UTC and the 00 UTC runs).</li>
+  <li>On the Verification tab, <b>Scores over</b> adds up the scores for: the selected day, the last 7 or 30 days, any month, any IMD season (winter Jan–Feb, pre-monsoon Mar–May, monsoon Jun–Sep, post-monsoon Oct–Dec), or the whole archive.</li>
+  <li><b>Download all daily scores (CSV)</b> gives one row per day, forecast (Day and run), model or MME, and threshold, with hits, misses, false alarms and correct negatives, ready for a spreadsheet: add up the counts over any period and compute POD, FAR, CSI and bias from the totals.</li>
+  <li>The archive begins with the observed day 01 Nov 2026; forecasts are in it from the 00 UTC 02 Nov run onwards.</li>
+</ul>
 </section>
 
 <!-- ======================================================= -->
