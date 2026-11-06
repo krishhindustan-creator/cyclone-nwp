@@ -79,16 +79,21 @@ jobs:
         run: |
           git clone -q --depth 1 -b verif-archive "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" archive \
             || (mkdir -p archive && cd archive && git init -q -b verif-archive)
-      - name: Verification (IMD gridded + IMD DRMS rainfall)
+      - name: Verification (IMD gridded rainfall)
         continue-on-error: true
         timeout-minutes: 15
         env:
           VERIF_ARCHIVE: archive
-          IRAINS_USER: ${{ secrets.IRAINS_USER }}
-          IRAINS_PASS: ${{ secrets.IRAINS_PASS }}
         run: |
           pip install imdlib
           python verif_runner.py
+      - name: Track verification (cyclone forecasts vs best track)
+        if: ${{ !contains(github.event.schedule, '10,40') }}
+        continue-on-error: true
+        timeout-minutes: 15
+        env:
+          VERIF_ARCHIVE: archive
+        run: python track_verif.py
       - name: Save the verification archive
         continue-on-error: true
         run: |
