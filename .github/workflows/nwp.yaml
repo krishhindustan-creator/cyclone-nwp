@@ -79,11 +79,13 @@ jobs:
         run: |
           git clone -q --depth 1 -b verif-archive "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" archive \
             || (mkdir -p archive && cd archive && git init -q -b verif-archive)
-      - name: Verification (IMD gridded rainfall)
+      - name: Verification (IMD gridded + IMD DRMS rainfall)
         continue-on-error: true
         timeout-minutes: 15
         env:
           VERIF_ARCHIVE: archive
+          IRAINS_USER: ${{ secrets.IRAINS_USER }}
+          IRAINS_PASS: ${{ secrets.IRAINS_PASS }}
         run: |
           pip install imdlib
           python verif_runner.py
