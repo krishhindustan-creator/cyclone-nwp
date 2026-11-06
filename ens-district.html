@@ -146,6 +146,7 @@ const MODELS = {
 };
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
+const CODE_KEYS  = ['district_code','DISTRICT_C','dist_code','dtcode11','DISTCODE','code'];
 const STATE_KEYS = ['STATE','state','State','st_nm','STATE_UT','NAME_1','stname','ST_NM'];
 
 // IMD 24-h rainfall categories (mm)
@@ -217,7 +218,7 @@ function prepare(geo){
     }
     const c = ringCentroid(big[0]) || [(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
     out.push({
-      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS),
+      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS), code: pick(f.properties||{},CODE_KEYS),
       sd: pick(f.properties||{},['sd']), polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
     });
   }

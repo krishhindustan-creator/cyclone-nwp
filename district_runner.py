@@ -484,13 +484,16 @@ INFO = {"IFS": "ECMWF IFS HRES 0.25 deg (ECMWF open data)", "AIFS": "ECMWF AIFS 
 
 # ------------------------------------------------------------------ geometry
 def load_districts():
+    """-> (polys per district, district_code per district). Districts in the GeoJSON's order."""
     G = json.load(open(GEO, encoding="utf-8"))
-    D = []
+    D, codes = [], []
     for f in G["features"]:
         g = f["geometry"]
         polys = [g["coordinates"]] if g["type"] == "Polygon" else g["coordinates"]
         D.append([[np.array(r, dtype=float) for r in poly] for poly in polys])
-    return D
+        p = f["properties"]
+        codes.append(p.get("district_code") or p.get("DISTRICT_C") or p.get("code"))
+    return D, codes
 
 
 def _area(r):
@@ -540,9 +543,12 @@ def district_index(D, F):
     return out
 
 
-def district_max(D, F, days):
+def district_stats(D, F, days):
+    """-> (max, mean) each a list over districts of per-day values (None where the model does not reach)."""
     pts = district_index(D, F)
-    return [[None if day is None else round(float(day[p].max()), 1) for day in days] for p in pts]
+    mx = [[None if day is None else round(float(day[p].max()), 1) for day in days] for p in pts]
+    mn = [[None if day is None else round(float(day[p].mean()), 1) for day in days] for p in pts]
+    return mx, mn
 
 
 # ------------------------------------------------------------------ run bookkeeping
@@ -575,12 +581,13 @@ def main():
         ics = [ic for ic in run_ids(now) if dt.timedelta(hours=MIN_AGE_H) <= now - ic <= dt.timedelta(hours=TRY_HOURS)]
     print("District rainfall: models %s; runs to check: %s" % (",".join(MODELS), ", ".join(i.strftime("%Y%m%d%H") for i in ics)),
           flush=True)
-    D = None; added = 0
+    D = codes = None; added = 0
     for ic in ics:
         tag = ic.strftime("%Y%m%d%H"); path = os.path.join(OUT, tag + ".json")
         run = (None if FORCE else load_run(path)) or {"ic": ic.strftime("%Y-%m-%dT%H:%M"), "models": {}, "shift": {}}
-        run.setdefault("verif", {})
-        todo = [m for m in MODELS if m not in run["models"] or m not in run["shift"] or m not in run["verif"]]
+        run.setdefault("verif", {}); run.setdefault("meanv", {})
+        todo = [m for m in MODELS if m not in run["models"] or m not in run["shift"] or m not in run["verif"]
+                or m not in run["meanv"]]
         if not todo:
             continue
         changed = False
@@ -590,10 +597,11 @@ def main():
                 CUR_IC["hour"] = ic.hour
                 F = FETCH[name](ic)
                 if D is None:
-                    D = load_districts()
-                run["models"][name] = district_max(D, F, F.days)
-                run["shift"][name] = district_max(D, F, F.shift)
-                run["verif"][name] = district_max(D, F, F.verif)
+                    D, codes = load_districts()
+                mx, _ = district_stats(D, F, F.days); run["models"][name] = mx
+                sx, _ = district_stats(D, F, F.shift); run["shift"][name] = sx
+                vmx, vmn = district_stats(D, F, F.verif)       # verification windows: both max and mean
+                run["verif"][name] = vmx; run["meanv"][name] = vmn
                 changed = True
                 print("  %s %-5s done (%.0f s, %d grid points in the India box)" % (tag, name, time.time() - t0, len(F.lat)),
                       flush=True)
@@ -604,12 +612,15 @@ def main():
             run["models"] = {m: run["models"][m] for m in order}
             run["shift"] = {m: run["shift"][m] for m in FETCH if m in run["shift"]}
             run["verif"] = {m: run["verif"][m] for m in FETCH if m in run["verif"]}
+            run["meanv"] = {m: run["meanv"][m] for m in FETCH if m in run["meanv"]}
+            run["codes"] = codes                               # district_code per district, in the value order
             vs = vsteps(ic.hour)
             run["vwin"] = [(ic + dt.timedelta(hours=h)).strftime("%Y-%m-%dT%H:%M") for h in vs[:-1]]   # window starts
             run["made"] = now.strftime("%Y-%m-%d %H:%M UTC")
             run["src"] = {m: INFO[m] for m in order}
-            run["note"] = ("Value = maximum of the model grid-point values inside each district (mm per 24 h). "
-                           "models: Day 1..10 of this run; shift: the 24-h windows of Day 1..10 of the next run (IC + 12 h).")
+            run["note"] = ("models/shift = maximum of the model grid-point values inside each district (mm per 24 h); "
+                           "verif = district maximum, meanv = district mean, both for the 03-03 UTC verification windows. "
+                           "codes[i] is the district_code of value index i. shift = the next run's day windows (IC + 12 h).")
             json.dump(run, open(path, "w"), separators=(",", ":"))
             added += 1
     # keep KEEP_DAYS days, write manifest (newest first)

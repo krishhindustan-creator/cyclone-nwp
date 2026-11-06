@@ -105,6 +105,8 @@
   <p class="sub" id="win"></p>
   <div class="runbar" id="runbar" hidden><label for="runsel">Observed day:</label><select id="runsel"></select></div>
   <div class="runbar" id="leadbar" hidden><label for="leadsel">Forecast:</label><select id="leadsel"></select></div>
+  <div class="runbar" id="obsbar" hidden><label for="obssel">Observed:</label><select id="obssel"><option value="gridded">IMD Gridded (district max)</option><option value="drms">IMD DRMS (district average)</option></select></div>
+  <div class="runbar" id="fvbar" hidden><label for="fvsel">Forecast value:</label><select id="fvsel"><option value="max">District maximum</option><option value="mean">District average</option></select></div>
   <div class="prod" id="thrbar" role="group" aria-label="Threshold"></div>
   <div class="prod" id="modebar" role="group" aria-label="Map shows"></div>
 
@@ -157,6 +159,7 @@ const MODELS = {
 };
 // Property names tried in order (add yours if your file differs)
 const DIST_KEYS  = ['DISTRICT','district','District','dtname','DISTRICT_N','NAME_2','Dist_Name','NAME','name'];
+const CODE_KEYS  = ['district_code','DISTRICT_C','dist_code','dtcode11','DISTCODE','code'];
 const STATE_KEYS = ['STATE','state','State','st_nm','STATE_UT','NAME_1','stname','ST_NM'];
 
 // IMD 24-h rainfall categories (mm)
@@ -228,7 +231,7 @@ function prepare(geo){
     }
     const c = ringCentroid(big[0]) || [(bb[0]+bb[2])/2,(bb[1]+bb[3])/2];
     out.push({
-      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS),
+      name: pick(f.properties||{},DIST_KEYS), state: pick(f.properties||{},STATE_KEYS), code: pick(f.properties||{},CODE_KEYS),
       sd: pick(f.properties||{},['sd']), polys, bbox:bb, area:(bb[2]-bb[0])*(bb[3]-bb[1]), lon:+c[0].toFixed(2), lat:+c[1].toFixed(2), rain:[]
     });
   }
@@ -373,6 +376,8 @@ const THR=[{k:'H',min:64.5,short:'≥ Heavy',name:'heavy or more (≥ 64.5 mm)'}
 const LEADS=[{k:'1-12',L:1,H:12},{k:'1-00',L:1,H:0},{k:'2-12',L:2,H:12},{k:'2-00',L:2,H:0},{k:'3-12',L:3,H:12},{k:'3-00',L:3,H:0}];
 const HMB=[{min:0,label:'Correct “no”',color:'#eef1f4'},{min:1,label:'Hit',color:'#2e9e4f'},{min:2,label:'Miss',color:'#d7301f'},{min:3,label:'False alarm',color:'#f5a623'}];
 let OBSDAYS=[], DAY=null, LEAD=LEADS[0], THK='H', SRC='MED', MODE='HM', SCOPE='day', IC=null, OBS=null, FC=null, product='';
+let OBSSRC='gridded', FVAL='max', AVAILSRC={gridded:false,drms:false};   // observed source and forecast value
+const obsName=()=>OBSSRC==='drms' ? 'IMD DRMS (district average)' : 'IMD Gridded (district '+(/* max shown as */ 'maximum')+')';
 let srvList=[], newestIC=null, busy=0;
 const thr=()=>THR.find(t=>t.k===THK);
 const setStatus=m=>{ statusEl.classList.remove('hide'); statusEl.textContent=m; };
@@ -384,36 +389,43 @@ async function getJSON(u){ try{ const r=await fetch(u+'?t='+Date.now(),{cache:'n
 // permanent archive: verif/archive/YYYY/YYYYMMDD.json (observed + all six forecasts of the day); older days live only there
 const recCache={};
 async function recOf(day){ if(!(day in recCache)) recCache[day]=await getJSON('verif/archive/'+day.slice(0,4)+'/'+day.replace(/-/g,'')+'.json'); return recCache[day]; }
-async function obsOf(day){
-  if(!(day in obsCache)){ const r=await recOf(day); obsCache[day]= r&&r.obs ? {max:r.obs} : await getJSON('verif/obs_'+day.replace(/-/g,'')+'.json'); }
-  return obsCache[day]; }
+async function recOrObs(day){               // archive record if present, else today's obs file
+  const r=await recOf(day); if (r) return r;
+  if(!(day in obsCache)) obsCache[day]=await getJSON('verif/obs_'+day.replace(/-/g,'')+'.json');
+  return obsCache[day];
+}
+// observed values for the chosen source as {code: mm}
+function obsMap(rec, src){
+  if (!rec) return null;
+  if (src==='drms') return rec.drms || null;
+  const g=rec.gridded; if (!g) return null;
+  return FVAL==='mean' ? g.mean : g.max;        // gridded: match the forecast value (max with max, mean with mean)
+}
+async function obsOf(day){ return obsMap(await recOrObs(day), OBSSRC); }
+function srcAvailable(rec){ return {gridded: !!(rec && rec.gridded), drms: !!(rec && rec.drms)}; }
 async function runOf(ic){ const t=isoUTC(ic).replace(/\D/g,'').slice(0,10); if(!(t in runCache)) runCache[t]=await getJSON('district/'+t+'.json'); return runCache[t]; }
 // forecasts for the observed day: every model's district maximum for 03 UTC day -> 03 UTC next day, plus MME mean / median
 async function fcOf(day, ld){
-  const rec=await recOf(day);
-  if (rec && rec.fc && rec.fc[ld.k]){
-    const M=rec.fc[ld.k].models, ks=Object.keys(VMODELS).filter(m=>M[m]), F={_models:ks};
-    for (const m of ks) F[m]=M[m];
-    F.MME=[]; F.MED=[];
-    for (let i=0;i<feats.length;i++){
-      const a=ks.map(m=>F[m][i]).filter(v=>v!=null).sort((x,y)=>x-y), n=a.length;
-      F.MME.push(n ? a.reduce((x,y)=>x+y,0)/n : null); F.MED.push(n ? (n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2) : null);
-    }
+  const rec=await recOf(day), vmodel=(obj)=>{   // build {_models, model:{code:v}, MME:{code:v}, MED:{code:v}}
+    const ks=Object.keys(VMODELS).filter(m=>obj[m]), F={_models:ks, MME:{}, MED:{}};
+    for (const m of ks) F[m]=obj[m];
+    const codes=new Set(); for (const m of ks) for (const c in obj[m]) codes.add(c);
+    for (const c of codes){ const a=ks.map(m=>obj[m][c]).filter(v=>v!=null).sort((x,y)=>x-y), n=a.length;
+      if (n){ F.MME[c]=a.reduce((x,y)=>x+y,0)/n; F.MED[c]=n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2; } }
     return F;
-  }
-  const j=await runOf(icFor(day,ld)), k=ld.L-1;
-  if (!j || !j.verif || !j.vwin || j.vwin[k]!==day+'T03:00') return null;
-  const ks=Object.keys(VMODELS).filter(m=>j.verif[m] && j.verif[m].some(r=>r[k]!=null)), F={_models:ks};
-  for (const m of ks) F[m]=j.verif[m].map(r=>r[k]);
-  F.MME=[]; F.MED=[];
-  for (let i=0;i<feats.length;i++){
-    const a=ks.map(m=>F[m][i]).filter(v=>v!=null).sort((x,y)=>x-y), n=a.length;
-    F.MME.push(n ? a.reduce((x,y)=>x+y,0)/n : null); F.MED.push(n ? (n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2) : null);
-  }
-  return F;
+  };
+  if (rec && rec.fc && rec.fc[ld.k] && rec.fc[ld.k][FVAL]) return vmodel(rec.fc[ld.k][FVAL]);
+  const j=await runOf(icFor(day,ld)), k=ld.L-1;         // live run file (current site), by code
+  if (!j || !j.verif || !j.vwin || j.vwin[k]!==day+'T03:00' || !j.codes) return null;
+  const src = FVAL==='mean' ? j.meanv : j.verif; if (!src) return null;
+  const obj={};
+  for (const m of Object.keys(VMODELS)){ if (!src[m]) continue;
+    const d={}; for (let i=0;i<j.codes.length;i++){ const v=src[m][i][k]; if (v!=null) d[j.codes[i]]=v; }
+    if (Object.keys(d).length) obj[m]=d; }
+  return Object.keys(obj).length ? vmodel(obj) : null;
 }
 function count(obs, fc, t){ let h=0,m=0,f=0,c=0;
-  for (let i=0;i<obs.length;i++){ const o=obs[i], x=fc[i]; if (o==null||x==null) continue;
+  for (const code in obs){ const o=obs[code], x=fc[code]; if (o==null||x==null) continue;
     const O=o>=t, X=x>=t; if (O&&X) h++; else if (O) m++; else if (X) f++; else c++; }
   return {h,m,f,c}; }
 const pct=(a,b)=>b ? Math.round(100*a/b)+'%' : '–';
@@ -421,14 +433,19 @@ const pct=(a,b)=>b ? Math.round(100*a/b)+'%' : '–';
 async function render(){
   busy++;
   try{
-    OBS=await obsOf(DAY); FC=await fcOf(DAY,LEAD);
+    const rec=await recOrObs(DAY); AVAILSRC=srcAvailable(rec);
+    if (!AVAILSRC[OBSSRC]) OBSSRC = AVAILSRC.gridded ? 'gridded' : AVAILSRC.drms ? 'drms' : OBSSRC;
+    if (OBSSRC==='drms') FVAL='mean';                   // DRMS is a district average: compare with forecast average
+    OBS=obsMap(rec,OBSSRC); FC=await fcOf(DAY,LEAD);
     IC=icFor(DAY,LEAD);
-    if (!OBS){ setStatus('Observed rainfall for '+fmtD(DAY)+' is not available.'); return; }
+    document.getElementById('obssel').value=OBSSRC; document.getElementById('fvsel').value=FVAL;
+    document.getElementById('fvsel').disabled = (OBSSRC==='drms');
+    if (!OBS){ setStatus('Observed rainfall ('+obsName()+') for '+fmtD(DAY)+' is not available.'); if(MODE!=='FC'){ busy--; return; } }
     statusEl.classList.add('hide');
     if (FC && SRC!=='MME' && SRC!=='MED' && !FC._models.includes(SRC)) SRC='MED';
     const t=thr().min, f=FC ? FC[SRC] : null;
-    feats.forEach((ft,i)=>{
-      const o=OBS.max[i], x=f ? f[i] : null; ft.o=o; ft.i=i;
+    feats.forEach(ft=>{
+      const o=OBS?OBS[ft.code]:null, x=f?f[ft.code]:null; ft.o=o;
       let v=null;
       if (MODE==='OBS') v=o; else if (MODE==='FC') v=x;
       else if (o!=null && x!=null) v = o>=t ? (x>=t?1:2) : (x>=t?3:0);
@@ -442,12 +459,17 @@ function valText(v){ return MODE==='HM' ? ['–','Hit','Miss','False alarm'][v] 
 function renderHeader(){
   const [a,b]=[new Date(DAY+'T03:00Z'), new Date(new Date(DAY+'T03:00Z').getTime()+24*HR)];
   document.getElementById('ictxt').textContent='Verification · '+fmtD(DAY)+' · '+leadLabel(LEAD);
-  document.getElementById('icsub').textContent='Observed: IMD real-time gridded rainfall (0.25°, provisional), 24 h from '+fmtZ(a)+' to '+fmtZ(b)
-    +' (08:30 IST to 08:30 IST). Forecast: run of '+fmtZ(IC)+', cut to the same 24 h. Both observed and forecast district values are the maximum of the grid points inside the district.';
+  const fv = FVAL==='mean' ? 'average' : 'maximum';
+  const obstxt = OBSSRC==='drms' ? 'IMD DRMS gauge-based district-average rainfall (iRAINS)'
+               : 'IMD real-time gridded rainfall (0.25°), district '+fv;
+  document.getElementById('icsub').textContent='Observed: '+obstxt+', 24 h from '+fmtZ(a)+' to '+fmtZ(b)
+    +' (08:30 IST to 08:30 IST, IMD rainfall day). Forecast: run of '+fmtZ(IC)+', cut to the same 24 h; district '+fv+' of each model.';
   setWarn(FC ? '' : 'The forecast run of '+fmtZ(IC)+' is no longer (or not yet) on the site with verification windows; choose another forecast or day.');
-  document.getElementById('win').textContent='Threshold: '+thr().name+' · Map: '+(MODE==='OBS'?'observed rainfall':MODE==='FC'?SRCNAME(SRC)+' forecast':'hits and misses of the '+SRCNAME(SRC)+' forecast');
-  document.getElementById('fn').textContent='Observed: IMD real-time gridded daily rainfall at 0.25° (IMD Pune), provisional and liable to revision; the rainfall of a date is the 24 h ending 08:30 IST (03 UTC) of the next day. '
-    +'Forecasts: the same district values as on the MME page (maximum of each model’s grid-point rainfall inside the district), recomputed for 03 UTC to 03 UTC; for 6-hourly models (ECMWF AIFS, NOAA AIGFS) the totals at 03/15 UTC are interpolated in time. '
+  const srctag = (OBSSRC==='drms'?'DRMS':'Gridded')+' vs district '+(FVAL==='mean'?'avg':'max');
+  document.getElementById('win').textContent='Threshold: '+thr().name+' · '+srctag+' · Map: '+(MODE==='OBS'?'observed rainfall':MODE==='FC'?SRCNAME(SRC)+' forecast':'hits and misses of the '+SRCNAME(SRC)+' forecast');
+  document.getElementById('fn').textContent='Two observed sources. IMD Gridded: IMD real-time gridded daily rainfall at 0.25° (IMD Pune), provisional; the district value is the maximum or the average of the grid points inside the district. '
+    +'IMD DRMS: the gauge-based district-average rainfall from IMD’s iRAINS District Rainfall Monitoring Scheme. The rainfall of a date is the 24 h ending 08:30 IST (03 UTC) of the next day (IMD convention). '
+    +'Forecasts are matched to the observation by district code and cut to the same 24 h; the forecast district value is the maximum or the average of each model’s grid points, to match the observed value chosen. For 6-hourly models (ECMWF AIFS, NOAA AIGFS) the 03/15 UTC totals are interpolated in time. '
     +'Hit: observed and forecast both at or above the threshold; Miss: observed only; False alarm: forecast only. POD = hits/(hits+misses); FAR = false alarms/(hits+false alarms); CSI = hits/(hits+misses+false alarms); '
     +'Bias = (hits+false alarms)/(hits+misses), above 1 means over-forecasting. Districts without observed data are left out. Not an official IMD product.';
 }
@@ -461,6 +483,11 @@ function buildBars(){
   btnRow('modebar','Map shows:',[['HM','Hits / misses'],['OBS','Observed'],['FC','Forecast']],MODE,k=>{MODE=k;render();});
   const src=[['MED','MME median'],['MME','MME mean']].concat(Object.keys(VMODELS).map(k=>[k,VMODELS[k],!(FC&&FC._models.includes(k))]));
   btnRow('prod','Forecast from:',src,SRC,k=>{SRC=k;render();});
+  const os=document.getElementById('obssel'); os.value=OBSSRC;
+  os.querySelector('option[value="gridded"]').disabled=!AVAILSRC.gridded;
+  os.querySelector('option[value="drms"]').disabled=!AVAILSRC.drms;
+  os.onchange=()=>{ OBSSRC=os.value; render(); };
+  const fs=document.getElementById('fvsel'); fs.value=FVAL; fs.disabled=(OBSSRC==='drms'); fs.onchange=()=>{ FVAL=fs.value; render(); };
 }
 function buildLegend(){
   document.getElementById('legend').innerHTML=curBins().map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')
@@ -474,10 +501,10 @@ async function scoreTable(){
   for (const d of days){
     if (days.length>5 && ++k_%5===0) box.innerHTML='<p class="cap">Loading '+k_+' of '+days.length+' days…</p>';
     const o=await obsOf(d), F=await fcOf(d,LEAD); if (!o || !F) continue; used++;
-    nObs+=o.max.filter(v=>v!=null&&v>=t).length;
-    for (const k of ['MED','MME'].concat(F._models)){ const c=count(o.max,F[k],t); const T=tot[k]||(tot[k]={h:0,m:0,f:0,c:0}); T.h+=c.h; T.m+=c.m; T.f+=c.f; T.c+=c.c; }
+    for (const c in o) if (o[c]!=null && o[c]>=t) nObs++;
+    for (const k of ['MED','MME'].concat(F._models)){ const c=count(o,F[k],t); const T=tot[k]||(tot[k]={h:0,m:0,f:0,c:0}); T.h+=c.h; T.m+=c.m; T.f+=c.f; T.c+=c.c; }
   }
-  let h='<p class="cap"><b>Scores for '+thr().name+'</b> · '+leadLabel(LEAD)+' · '
+  let h='<p class="cap"><b>Scores for '+thr().name+'</b> · '+(OBSSRC==='drms'?'IMD DRMS (district avg)':'IMD Gridded (district '+(FVAL==='mean'?'avg':'max')+')')+' · '+leadLabel(LEAD)+' · '
     +(SCOPE==='day' ? fmtD(DAY) : periodName()+': '+used+' of '+days.length+' observed day'+(days.length===1?'':'s')+' with this forecast')+' · observed districts at or above the threshold: '+nObs
     +'</p><p class="cap"><label for="period">Scores over: </label><select id="period">'+periodOptions()+'</select>'
     +' &nbsp; <a href="verif/archive/scores.csv" download>Download all daily scores (CSV)</a></p>';
@@ -518,6 +545,7 @@ async function boot(){
   const sel=document.getElementById('runsel'); document.getElementById('runbar').hidden=false;
   sel.innerHTML=OBSDAYS.map(d=>'<option value="'+d+'">'+fmtD(d)+' (08:30 IST '+fmtD(d).slice(0,6)+' → next day)</option>').join('');
   sel.onchange=()=>{ DAY=sel.value; render(); };
+  document.getElementById('obsbar').hidden=false; document.getElementById('fvbar').hidden=false;
   const ls=document.getElementById('leadsel'); document.getElementById('leadbar').hidden=false;
   ls.innerHTML=LEADS.map(l=>'<option value="'+l.k+'">'+leadLabel(l)+'</option>').join('');
   ls.onchange=()=>{ LEAD=LEADS.find(l=>l.k===ls.value); render(); };
@@ -539,11 +567,12 @@ function showTip(e){
   if (f!==hover){ hover=f; draw(); }
   if (!f){ tip.style.display='none'; return; }
   const t=thr().min, o=f.o, fmt=v=>v==null?'–':v.toFixed(1)+' mm', sw=v=>'<i style="background:'+(v==null?'transparent':binOf(v).color)+'"></i>';
+  const olabel = OBSSRC==='drms' ? 'Observed (IMD DRMS avg)' : 'Observed (IMD gridded '+(FVAL==='mean'?'avg':'max')+')';
   const mark=x=>{ if (o==null||x==null) return ''; const O=o>=t, X=x>=t; return O&&X?' ✓ hit':O?' ✗ miss':X?' ! false alarm':''; };
   let h='<b>'+(f.name||'District')+'</b>'+(f.state?f.state+'<br>':'')+(f.sd?'<span style="opacity:.85">IMD subdivision: '+f.sd+'</span>':'');
-  h+='<table><tr class="mme"><td>'+sw(o)+'Observed (IMD)</td><td class="v">'+fmt(o)+'</td></tr>';
+  h+='<table><tr class="mme"><td>'+sw(o)+olabel+'</td><td class="v">'+fmt(o)+'</td></tr>';
   if (FC){
-    for (const k of ['MED','MME'].concat(FC._models)){ const x=FC[k][f.i];
+    for (const k of ['MED','MME'].concat(FC._models)){ const x=FC[k][f.code];
       h+='<tr'+(k===SRC?' class="on"':'')+'><td>'+sw(x)+SRCNAME(k)+'</td><td class="v">'+fmt(x)+'<small>'+mark(x)+'</small></td></tr>'; }
   }
   h+='</table><div class="cat">Threshold: '+thr().name+(o!=null?' · Observed: '+binOf(o).label.split(' (')[0]:'')+'</div>';
@@ -576,7 +605,7 @@ document.getElementById('png').onclick=()=>{
     c.fillStyle=b.color; c.fillRect(x,y,16*d,11*d); c.strokeStyle='#0004'; c.strokeRect(x,y,16*d,11*d);
     c.fillStyle='#14202b'; c.fillText(b.label,x+22*d,y-1*d); x+=w+8*d; }
   o.toBlob(bl=>{const a=document.createElement('a'); a.href=URL.createObjectURL(bl);
-    a.download='verification_'+DAY+'_'+LEAD.k+'_'+THK+'_'+MODE+'_'+SRC+'.png'; a.click(); URL.revokeObjectURL(a.href);});
+    a.download='verification_'+DAY+'_'+OBSSRC+'_'+FVAL+'_'+LEAD.k+'_'+THK+'_'+MODE+'_'+SRC+'.png'; a.click(); URL.revokeObjectURL(a.href);});
 };
 document.getElementById('refresh').onclick=async()=>{ for (const k in runCache) delete runCache[k]; for (const k in obsCache) delete obsCache[k]; await boot(); };
 

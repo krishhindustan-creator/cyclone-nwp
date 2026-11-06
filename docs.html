@@ -63,7 +63,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <tr><td>ECMWF ENS</td><td>Cyclone tracks of the 51-member ECMWF ensemble: spaghetti, strike probability, MSW and MSLP plumes, landfall summary, run comparison</td><td><a href="index.html#ens" target="_top">#ens</a></td></tr>
 <tr><td>IMD MME</td><td>Cyclone track, MSW and MSLP of seven models and their mean (MME), MME table and landfall table</td><td><a href="index.html#mme" target="_top">#mme</a></td></tr>
 <tr><td>A-Deck</td><td>Model tracks collected by JTWC for a numbered system</td><td><a href="index.html#adeck" target="_top">#adeck</a></td></tr>
-<tr><td>MME District Rainfall Forecast</td><td>24-h rainfall for 734 districts, Day 1–10, from ten models: each model, MME mean and median, share of models per IMD category</td><td><a href="index.html#district" target="_top">#district</a></td></tr>
+<tr><td>MME District Rainfall Forecast</td><td>24-h rainfall for 742 districts, Day 1–10, from ten models: each model, MME mean and median, share of models per IMD category</td><td><a href="index.html#district" target="_top">#district</a></td></tr>
 <tr><td>Ensemble District R/F Probability</td><td>Chance of each IMD rainfall category per district from 102 ensemble members (ECMWF ENS, GEFS, GEPS)</td><td><a href="index.html#ensdist" target="_top">#ensdist</a></td></tr>
 <tr><td>Verification</td><td>Yesterday's district forecasts against IMD gridded rainfall: hit/miss maps and POD, FAR, CSI, bias</td><td><a href="index.html#verif" target="_top">#verif</a></td></tr>
 </table></div>
@@ -179,7 +179,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 </table></div>
 <h3>District value</h3>
 <ul>
-  <li>For each model, district and day: the <b>highest grid-point rainfall inside the district</b> (734 districts). The grid point nearest the district centre is always included, so very small districts also get a value.</li>
+  <li>For each model, district and day: the <b>highest grid-point rainfall inside the district</b> (742 districts). The grid point nearest the district centre is always included, so very small districts also get a value.</li>
   <li>A district maximum keeps a localised heavy spell visible in a large district; it reads closer to the heaviest station report than to the district average.</li>
   <li>Values are raw model rainfall in mm; no bias correction.</li>
 </ul>
@@ -216,14 +216,16 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 
 <!-- ======================================================= -->
 <section id="verif"><h2>9. Verification <a class="top" href="#top">↑ top</a></h2>
-<h3>Observed rainfall</h3>
+<h3>Observed rainfall: two sources</h3>
 <ul>
-  <li>IMD real-time gridded daily rainfall at 0.25° (IMD Pune), downloaded openly each day. The rainfall of a date is the 24 h ending 08:30 IST of the next day. The data are provisional, so the last three days are fetched again as IMD revises them.</li>
-  <li>Observed district value = highest grid-point rainfall inside the district (the same rule as the forecasts). IMD's district rainfall (a station average) is not used, as it would not match a district maximum.</li>
+  <li><b>IMD Gridded:</b> IMD real-time gridded daily rainfall at 0.25° (IMD Pune), downloaded openly each day; provisional, so the last three days are re-fetched as IMD revises them. The district value is the <b>maximum</b> or the <b>average</b> of the grid points inside the district.</li>
+  <li><b>IMD DRMS:</b> the gauge-based <b>district-average</b> rainfall from IMD's iRAINS District Rainfall Monitoring Scheme, via its district API (matched by district code, so matching is exact).</li>
+  <li>The rainfall of a date is the 24 h ending 08:30 IST (03 UTC) of the next day, the IMD convention.</li>
+  <li>The Verification tab has two dropdowns: <b>Observed</b> (IMD Gridded or IMD DRMS) and <b>Forecast value</b> (district maximum or district average). DRMS, being a district average, is compared with the forecast district average.</li>
 </ul>
 <h3>Forecasts compared</h3>
 <ul>
-  <li>Each model's forecast is cut to the same 08:30–08:30 IST window. For 6-hourly models (ECMWF AIFS, NOAA AIGFS) the totals at 03/15 UTC are interpolated in time between the neighbouring outputs.</li>
+  <li>Each model's forecast is matched to the observation by <b>district code</b> and cut to the same 08:30–08:30 IST window; the forecast district value is the <b>maximum</b> or the <b>average</b> of the grid points, to match the chosen observed value. For 6-hourly models (ECMWF AIFS, NOAA AIGFS) the totals at 03/15 UTC are interpolated in time.</li>
   <li>Day 1: 12 UTC run of the day before (the run available at 08:30 IST) or 00 UTC run of the same day; Day 2 and Day 3 from runs one and two days earlier.</li>
   <li>MME mean and median are formed from the models available for that window.</li>
 </ul>
@@ -265,13 +267,13 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <!-- ======================================================= -->
 <section id="sources"><h2>11. Data sources and acknowledgements <a class="top" href="#top">↑ top</a></h2>
 <ul>
-  <li><b>IMD</b>: CLIMS RS/RW data; NWP Division SFTP server (IMD GFS, NCUM-G and NCUM-R fields and rainfall, cut to the region); IMD Pune real-time gridded rainfall.</li>
+  <li><b>IMD</b>: CLIMS RS/RW data; NWP Division SFTP server (IMD GFS, NCUM-G and NCUM-R fields and rainfall, cut to the region); IMD Pune real-time gridded rainfall; iRAINS District Rainfall Monitoring Scheme API (gauge-based district rainfall).</li>
   <li><b>ECMWF</b> open data (CC BY 4.0): IFS, AIFS, ENS rainfall and tropical-cyclone tracks.</li>
   <li><b>NOAA/NCEP</b>: GFS, AIGFS and GEFS (NOAA Open Data Dissemination on AWS; NOMADS).</li>
   <li><b>Environment and Climate Change Canada</b>: GDPS and GEPS (MSC Datamart, open data licence).</li>
   <li><b>DWD</b> (ICON) and <b>Météo-France</b> (ARPEGE) open data.</li>
   <li><b>JTWC / UCAR RAL</b>: open a-deck model tracks.</li>
-  <li>District boundaries: India district map (734 districts); IMD meteorological subdivisions (36).</li>
+  <li>District boundaries: IMD DRMS district map (742 districts, with IMD district codes); IMD meteorological subdivisions (36).</li>
   <li>Computing and hosting: GitHub Actions and GitHub Pages (free).</li>
 </ul>
 <p>Questions and suggestions: <a href="mailto:krishhindustan@gmail.com">krishhindustan@gmail.com</a></p>

@@ -199,7 +199,7 @@ def main():
             sys.exit("Only 00 and 12 UTC runs are used")
     else:
         ics = [ic for ic in run_ids(now) if dt.timedelta(hours=MIN_AGE_H) <= now - ic <= dt.timedelta(hours=TRY_HOURS)]
-    D = None; added = 0
+    D = codes = None; added = 0
     for ic in ics:
         tag = ic.strftime("%Y%m%d%H")
         for ens in WANT:
@@ -211,14 +211,15 @@ def main():
             try:
                 lat, lon, days = ENSEMBLES[ens](ic)
                 if D is None:
-                    D = dr.load_districts()
+                    D, codes = dr.load_districts()
                 v = member_values(D, lat, lon, days, ens)
             except Exception as e:
                 print("  %s %s not done: %s: %s" % (tag, ens, type(e).__name__, str(e)[:200]), flush=True)
                 continue
             json.dump({"ic": ic.strftime("%Y-%m-%dT%H:%M"), "ens": ens, "made": now.strftime("%Y-%m-%d %H:%M UTC"),
-                       "members": int(days.shape[0]), "days": DAYS, "src": SRC[ens],
-                       "note": "v[district][day] = each member's maximum grid-point 24-h rainfall inside the district (mm)",
+                       "members": int(days.shape[0]), "days": DAYS, "src": SRC[ens], "codes": codes,
+                       "note": "v[district][day] = each member's maximum grid-point 24-h rainfall inside the district (mm); "
+                               "codes[district] is its district_code",
                        "v": v}, open(path, "w"), separators=(",", ":"))
             added += 1
             print("  %s %s done (%d members, %.0f s)" % (tag, ens, days.shape[0], time.time() - t0), flush=True)
