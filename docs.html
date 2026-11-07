@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Technical notes on the products</title>
+<style>
+  :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad;--soft:#eef3f8}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1050px;margin:0 auto;padding:16px}
+  h1{font-size:1.35rem;margin:0 0 4px}
+  h2{font-size:1.15rem;margin:0 0 8px;color:var(--accent)}
+  h3{font-size:1rem;margin:16px 0 6px}
+  p{margin:6px 0}
+  .lead{color:var(--mute);margin:0 0 14px}
+  section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin:14px 0;scroll-margin-top:10px}
+  nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+  nav.toc ol{margin:4px 0;padding-left:22px;columns:2;column-gap:28px}
+  nav.toc li{break-inside:avoid;margin:2px 0}
+  a{color:var(--accent)}
+  .tbl{overflow-x:auto;margin:8px 0}
+  table{border-collapse:collapse;width:100%;font-size:.88rem;min-width:560px}
+  th,td{border:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
+  th{background:#14202b;color:#fff;font-weight:600}
+  tr:nth-child(even) td{background:#fafbfc}
+  ul{margin:6px 0;padding-left:20px}
+  li{margin:2px 0}
+  .note{background:var(--soft);border-radius:6px;padding:8px 10px;font-size:.88rem;color:var(--mute);margin:8px 0}
+  code{background:var(--soft);padding:1px 4px;border-radius:3px;font-size:.86em}
+  .sw{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:4px;border:1px solid #0002}
+  .top{font-size:.82rem;float:right}
+  footer{color:var(--mute);font-size:.82rem;margin:18px 0 30px}
+  @media (max-width:700px){ .wrap{padding:10px} nav.toc ol{columns:1} section{padding:12px} h1{font-size:1.15rem} }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1 id="top">Technical notes on the products</h1>
+<p class="lead">How each product on this site is made: data sources, model grids, runs used, methods, update times and archives.
+Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological Department. These are guidance products, not official IMD forecasts.</p>
+
+<nav class="toc" aria-label="Contents"><b>Contents</b>
+<ol>
+  <li><a href="#overview">The pages and tabs</a></li>
+  <li><a href="#conventions">Times, runs and categories</a></li>
+  <li><a href="#tphi">T-phi grams (IMD RS/RW data)</a></li>
+  <li><a href="#mme">IMD MME: cyclone tracks of 7 models</a></li>
+  <li><a href="#ens">ECMWF ensemble cyclone tracks</a></li>
+  <li><a href="#adeck">A-Deck: JTWC model tracks</a></li>
+  <li><a href="#district">MME District Rainfall Forecast</a></li>
+  <li><a href="#ensdist">Ensemble District R/F Probability</a></li>
+  <li><a href="#verif">Verification</a></li>
+  <li><a href="#schedule">Update times and archives</a></li>
+  <li><a href="#sources">Data sources and acknowledgements</a></li>
+</ol></nav>
+
+<!-- ======================================================= -->
+<section id="overview"><h2>1. The pages and tabs</h2>
+<div class="tbl"><table>
+<tr><th>Tab</th><th>What it gives</th><th>Link</th></tr>
+<tr><td>T-phi grams</td><td>T-phi gram and 39 thermodynamic indices for every IMD RS/RW station that reported</td><td><a href="https://krishhindustan-creator.github.io/rsrw-tphigrams" target="_top">rsrw-tphigrams</a></td></tr>
+<tr><td>ECMWF ENS</td><td>Cyclone tracks of the 51-member ECMWF ensemble: spaghetti, strike probability, MSW and MSLP plumes, landfall summary, run comparison</td><td><a href="index.html#ens" target="_top">#ens</a></td></tr>
+<tr><td>IMD MME</td><td>Cyclone track, MSW and MSLP of seven models and their mean (MME), MME table and landfall table</td><td><a href="index.html#mme" target="_top">#mme</a></td></tr>
+<tr><td>A-Deck</td><td>Model tracks collected by JTWC for a numbered system</td><td><a href="index.html#adeck" target="_top">#adeck</a></td></tr>
+<tr><td>MME District Rainfall Forecast</td><td>24-h rainfall for 742 districts, Day 1–10, from ten models: each model, MME mean and median, share of models per IMD category</td><td><a href="index.html#district" target="_top">#district</a></td></tr>
+<tr><td>Ensemble District R/F Probability</td><td>Chance of each IMD rainfall category per district from 102 ensemble members (ECMWF ENS, GEFS, GEPS)</td><td><a href="index.html#ensdist" target="_top">#ensdist</a></td></tr>
+<tr><td>Verification</td><td>Yesterday's district forecasts against IMD gridded rainfall: hit/miss maps and POD, FAR, CSI, bias</td><td><a href="index.html#verif" target="_top">#verif</a></td></tr>
+</table></div>
+<p>All pages are produced automatically on a free cloud computer (GitHub Actions) and published on GitHub Pages. No office computer is involved; nothing needs to be installed to view them, on phone or desktop.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="conventions"><h2>2. Times, runs and categories</h2>
+<ul>
+  <li><b>IC</b> (initial condition) is the model run time, e.g. 00 UTC 03 Nov. IST = UTC + 5:30.</li>
+  <li><b>Runs used:</b> the district rainfall products use only the <b>00 and 12 UTC</b> runs of every model, so all models refer to the same 24-hour windows. The cyclone MME uses each model's latest available run.</li>
+  <li><b>Day n</b> on the forecast tabs is the n-th 24 hours after the IC: 00 to 00 UTC (05:30 to 05:30 IST) for a 00 UTC run, 12 to 12 UTC (17:30 to 17:30 IST) for a 12 UTC run.</li>
+  <li><b>Verification day</b> follows IMD's rainfall day: 03 UTC to 03 UTC (08:30 to 08:30 IST).</li>
+  <li><b>Late runs:</b> a model or member whose new run is not yet published is shown from its previous run and labelled with that run, e.g. NCUM-R (28/12Z) or ECMWF IFS (12Z).</li>
+</ul>
+<h3>IMD 24-hour rainfall categories (district maps)</h3>
+<div class="tbl"><table>
+<tr><th>Category</th><th>mm in 24 h</th><th>Category</th><th>mm in 24 h</th></tr>
+<tr><td><span class="sw" style="background:#eef1f4"></span>No rain</td><td>0</td><td><span class="sw" style="background:#3db1d9"></span>Moderate</td><td>15.6 – 64.4</td></tr>
+<tr><td><span class="sw" style="background:#d6efe3"></span>Very light</td><td>0.1 – 2.4</td><td><span class="sw" style="background:#2f6fd0"></span>Heavy</td><td>64.5 – 115.5</td></tr>
+<tr><td><span class="sw" style="background:#86d1a4"></span>Light</td><td>2.5 – 15.5</td><td><span class="sw" style="background:#7a3fc0"></span>Very heavy</td><td>115.6 – 204.4</td></tr>
+<tr><td></td><td></td><td><span class="sw" style="background:#c2185b"></span>Extremely heavy</td><td>≥ 204.5</td></tr>
+</table></div>
+<h3>Cyclone intensity (maximum sustained wind)</h3>
+<p>D 17–27 kt · DD 28–33 kt · CS 34–47 kt · SCS 48–63 kt · VSCS 64–89 kt · ESCS 90–119 kt · SuCS ≥ 120 kt.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="tphi"><h2>3. T-phi grams (IMD RS/RW data) <a class="top" href="#top">↑ top</a></h2>
+<h3>Data</h3>
+<ul>
+  <li>Source: IMD CLIMS RS/RW data for all stations. For each ascent the File-3 standard summary (<code>_sum.txt</code>) is read, or the File-4 zip when File-3 is missing.</li>
+  <li>Levels used: time, pressure (hPa), temperature, relative humidity, dew point, geopotential height, wind direction and speed.</li>
+  <li>About 45 stations report at a typical 00 UTC ascent.</li>
+</ul>
+<h3>What is drawn</h3>
+<ul>
+  <li>T-phi gram with the parcel path; positive area (CAPE) shaded red and negative area (CIN) blue; wind barbs.</li>
+  <li>An index sheet of 39 values per station, including: surface-based, mixed-layer and most-unstable CAPE; CIN; LCL, LFC and EL; lifted index and Showalter index; K index; total totals; SWEAT; precipitable water; DCAPE and the corresponding maximum downdraft speed; bulk wind shear and storm-relative helicity; supercell composite (SCP) and significant tornado parameter (STP); wet-bulb zero height.</li>
+  <li>Quality flags: values outside physical limits (e.g. CAPE above 7000 J/kg, precipitable water outside 2–90 mm, K index outside −40 to 60) are flagged on the sheet, not hidden. Check the ascent before using a flagged index.</li>
+</ul>
+<h3>Updates and archive</h3>
+<p>07:30 and 09:00 IST for 00 UTC ascents; 19:30 and 21:00 IST for 12 UTC. The later run adds stations that report late. A rolling archive keeps all ascents; view by ascent or by station and filter by name.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="mme"><h2>4. IMD MME: cyclone tracks of 7 models <a class="top" href="#top">↑ top</a></h2>
+<div class="tbl"><table>
+<tr><th>Model (centre)</th><th>Fields / grid used</th><th>Track from</th><th>Data source</th></tr>
+<tr><td>ECMWF HRES (ECMWF)</td><td>IFS ~9 km</td><td>ECMWF's own tracker (track file, BUFR)</td><td>ECMWF open data</td></tr>
+<tr><td>NCEP GFS (NOAA, USA)</td><td>MSLP and 10 m wind, 0.25°</td><td>Own tracker (below)</td><td>NOAA NOMADS</td></tr>
+<tr><td>CMC GDPS (Canada)</td><td>MSLP and 10 m wind speed, 0.15° (~15 km)</td><td>Own tracker</td><td>MSC Datamart</td></tr>
+<tr><td>IMD GFS (IMD)</td><td>MSLP and 10 m wind, model ~12 km, regional cut</td><td>Own tracker</td><td>IMD NWP SFTP server</td></tr>
+<tr><td>NCUM-G (NCMRWF)</td><td>MSLP and 10 m wind, model ~12 km, regional cut</td><td>Own tracker</td><td>IMD NWP SFTP server</td></tr>
+<tr><td>NCUM-R (NCMRWF)</td><td>MSLP and 10 m wind, model ~4 km, regional</td><td>Own tracker</td><td>IMD NWP SFTP server</td></tr>
+<tr><td>NAVGEM (US Navy)</td><td>—</td><td>US Navy track in the JTWC a-deck</td><td>UCAR RAL open a-decks</td></tr>
+</table></div>
+<h3>Own tracker (gridded models)</h3>
+<ul>
+  <li>Fields are cut to 0–35°N, 40–100°E, every 6 h up to +240 h.</li>
+  <li>Centre: minimum of MSLP smoothed over about 50 km, searched within 400 km of the starting position, then within 250 km of the position extrapolated from the last 6 hours.</li>
+  <li>A centre is accepted only if it is at least 1 hPa deeper than the mean MSLP in a 300–500 km ring (2.5 hPa over land); tracking stops after a jump of more than 300 km in 6 h, or when a decaying low over land becomes too weak.</li>
+  <li>MSW = highest 10 m wind within 300 km of the centre; central pressure = lowest MSLP within 75 km.</li>
+  <li>Landfall = first ocean-to-land crossing of the track, found on the coastline by bisection and interpolated in time; the nearest coastal place is named.</li>
+  <li>The basin (Bay of Bengal or Arabian Sea) and the starting position come automatically from ECMWF's tracker.</li>
+</ul>
+<h3>MME</h3>
+<ul>
+  <li>Every 6 hours, the simple mean of latitude, longitude, MSW and MSLP of the members present at that time (at least 2 members).</li>
+  <li>A model whose run is not out is used from its earlier run (up to 24 h older), from the matching time, and labelled with that run.</li>
+  <li>Written as <code>MMM_track.txt</code> in IMD's MME text format.</li>
+</ul>
+<h3>Products, updates and archive</h3>
+<p>Combined track/MSW/MSLP figure, model tracks, MSW and MSLP of all models, MME track and MSW, MME MSLP with a 6-hourly table, landfall table. Six updates a day: 10:30, 13:30, 14:30, 22:30, 01:30 and 02:30 IST (05, 08, 09, 17, 20, 21 UTC). Last 15 days (30 runs) kept.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="ens"><h2>5. ECMWF ensemble cyclone tracks <a class="top" href="#top">↑ top</a></h2>
+<ul>
+  <li>Data: ECMWF's tropical-cyclone track files (BUFR) from ECMWF open data, for the ensemble (50 perturbed members + control) and HRES. Resolution of the IFS ensemble: ~9 km.</li>
+  <li>For each member, the track of the system is the basin track passing closest to the reference position (within 4°) during the first 72 h.</li>
+  <li>Ensemble mean track, MSW and MSLP: mean of the members tracking the system at each time, shown where at least 10 members remain. Plumes show the 10–90 percentile band.</li>
+  <li><b>Strike probability</b>: share of the 51 tracks whose centre passes within 120 km of a point at any time in the forecast (tracks interpolated hourly).</li>
+  <li><b>Run comparison</b>: the last six runs side by side (peak, landfall time and place, members making landfall), also saved as a PNG.</li>
+  <li>New runs appear at about 13:30 IST (00 UTC run) and 01:30 IST (12 UTC run). Last 15 days kept.</li>
+</ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="adeck"><h2>6. A-Deck: JTWC model tracks <a class="top" href="#top">↑ top</a></h2>
+<ul>
+  <li>Source: the open a-deck files of the UCAR RAL Tropical Cyclone Guidance Project. An a-deck exists only after JTWC numbers the system (e.g. 02B, file <code>aio02YYYY.dat</code>).</li>
+  <li>Plotted: NAVGEM (NGX), UKMO (UKM), CMC, and the GEFS (AEMN), Canadian (CEMN) and Navy (NEMN) ensemble means, each with its own centre's tracker.</li>
+  <li>Run used: the latest a-deck run with at least three deterministic models. NAVGEM from here is also an MME member; the others are for comparison only.</li>
+  <li>Updated with every MME update; last 15 days kept; track files downloadable.</li>
+</ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="district"><h2>7. MME District Rainfall Forecast <a class="top" href="#top">↑ top</a></h2>
+<div class="tbl"><table>
+<tr><th>Model (centre)</th><th>Grid used</th><th>Days</th><th>Rainfall field</th><th>Data source</th><th>Usually ready</th></tr>
+<tr><td>ECMWF IFS</td><td>0.25°</td><td>1–10</td><td>Total precipitation from IC</td><td>ECMWF open data</td><td>~7–8 h after IC</td></tr>
+<tr><td>ECMWF AIFS (AI model)</td><td>0.25°</td><td>1–10</td><td>Total precipitation, 6-hourly</td><td>ECMWF open data</td><td>~7 h</td></tr>
+<tr><td>NCEP GFS</td><td>0.25°</td><td>1–10</td><td>APCP from IC</td><td>NOAA open data (AWS), NOMADS backup</td><td>~4 h</td></tr>
+<tr><td>NOAA AIGFS (AI model)</td><td>0.25°</td><td>1–10</td><td>APCP from IC, 6-hourly</td><td>NOAA open data (AWS)</td><td>~4–5 h</td></tr>
+<tr><td>DWD ICON</td><td>~13 km native (icosahedral)</td><td>1–7</td><td>TOT_PREC from IC</td><td>DWD open data (kept ~24 h)</td><td>~4 h</td></tr>
+<tr><td>CMC GDPS</td><td>0.15° (~15 km)</td><td>1–10</td><td>24-h and run-total precipitation</td><td>MSC Datamart</td><td>~4–5 h</td></tr>
+<tr><td>Météo-France ARPEGE</td><td>0.25°</td><td>1–4</td><td>Total precipitation from IC</td><td>Météo-France open data</td><td>~4–5 h</td></tr>
+<tr><td>IMD GFS</td><td>0.125° (model ~12 km)</td><td>1–5</td><td>3-hourly rainfall buckets</td><td>IMD NWP SFTP server</td><td>variable</td></tr>
+<tr><td>NCUM-G (NCMRWF)</td><td>0.18° × 0.12° (model ~12 km)</td><td>1–10</td><td>Hourly rainfall</td><td>IMD NWP SFTP server</td><td>variable</td></tr>
+<tr><td>NCUM-R (NCMRWF)</td><td>~4 km (regional model)</td><td>1–3</td><td>Rainfall from IC</td><td>IMD NWP SFTP server</td><td>variable</td></tr>
+</table></div>
+<h3>District value</h3>
+<ul>
+  <li>For each model, district and day: the <b>highest grid-point rainfall inside the district</b> (742 districts). The grid point nearest the district centre is always included, so very small districts also get a value.</li>
+  <li>A district maximum keeps a localised heavy spell visible in a large district; it reads closer to the heaviest station report than to the district average.</li>
+  <li>Values are raw model rainfall in mm; no bias correction.</li>
+</ul>
+<h3>MME mean, median and chance</h3>
+<ul>
+  <li><b>MME (mean)</b>: simple average of the models' district values, all with equal weight.</li>
+  <li><b>MME median</b>: the middle value of the models (for an even number, the mean of the two middle values); a single very wet or very dry model cannot pull it.</li>
+  <li><b>Chance ≥ category</b>: share of the models whose district value reaches the category's lower limit (e.g. 7 of 10 models ≥ 64.5 mm = 70%). Not calibrated against observations.</li>
+  <li>On days a model does not reach (ICON after Day 7, ARPEGE after Day 4, IMD GFS after Day 5, NCUM-R after Day 3), the MME uses the remaining models; the tooltip shows how many.</li>
+</ul>
+<h3>Late models</h3>
+<p>Every run also stores its rainfall for the next run's day windows (shifted by 12 h). If a model's run for the current IC is not yet out, the page uses these values from its previous run, for exactly the same 24 hours, includes them in the MME and labels the model e.g. “ECMWF IFS (12Z)”. They are replaced automatically when the new run arrives.</p>
+<h3>Updates and archive</h3>
+<p>Checked every 30 minutes, 08:40–16:10 and 20:40–04:10 IST, plus the six main updates; each model is added as soon as it is published. Last 7 days (14 runs) kept.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="ensdist"><h2>8. Ensemble District R/F Probability <a class="top" href="#top">↑ top</a></h2>
+<div class="tbl"><table>
+<tr><th>Ensemble (centre)</th><th>Members</th><th>Grid used</th><th>Days</th><th>Rainfall field</th><th>Data source</th><th>Usually ready</th></tr>
+<tr><td>ECMWF ENS</td><td>50 perturbed (control not in open data)</td><td>0.25°</td><td>1–10</td><td>Total precipitation from IC</td><td>ECMWF open data</td><td>~7–8 h after IC</td></tr>
+<tr><td>GEFS (NOAA)</td><td>31 (control + 30)</td><td>0.25°</td><td>1–10</td><td>6-hourly APCP buckets</td><td>NOAA open data (AWS)</td><td>~5 h</td></tr>
+<tr><td>GEPS (ECCC, Canada)</td><td>21 (control + 20)</td><td>0.5°</td><td>1–10</td><td>APCP from IC</td><td>MSC Datamart</td><td>~5 h</td></tr>
+</table></div>
+<ul>
+  <li>Each member's district value is computed exactly as in section 7 (highest grid-point rainfall in the district).</li>
+  <li><b>Pooling</b>: the selected ensembles are pooled member by member; every member counts equally. With all three on, ECMWF weighs 49%, GEFS 30% and GEPS 21%; the pooled chance is the member-weighted average of the three chances.</li>
+  <li><b>Chance ≥ category</b> = members at or above the category's lower limit ÷ members selected. Raw ensemble frequency, not calibrated.</li>
+  <li><b>Members' rainfall</b>: Min, 10th, 25th, 50th (median), 75th, 90th percentile and Max of the members' district values (linear interpolation between members), and the ensemble mean.</li>
+  <li><b>Example</b>, Guntur, Day 1, 00 UTC 03 Nov, ≥ 64.5 mm: ECMWF 50/50, GEFS 26/31, GEPS 18/21 → 94/102 = 92%.</li>
+  <li>An ensemble not yet published for a run is shown as “(not yet)” and added when it arrives; runs are never mixed. Last 7 days kept.</li>
+</ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="verif"><h2>9. Verification <a class="top" href="#top">↑ top</a></h2>
+<h3>Observed rainfall: two sources</h3>
+<ul>
+  <li><b>IMD Gridded:</b> IMD real-time gridded daily rainfall at 0.25° (IMD Pune), downloaded openly each day; provisional, so the last three days are re-fetched as IMD revises them. The district value is the <b>maximum</b> or the <b>average</b> of the grid points inside the district.</li>
+  <li><b>IMD DRMS:</b> the gauge-based <b>district-average</b> rainfall from IMD's iRAINS District Rainfall Monitoring Scheme, via its district API (matched by district code, so matching is exact).</li>
+  <li>The rainfall of a date is the 24 h ending 08:30 IST (03 UTC) of the next day, the IMD convention.</li>
+  <li>The Verification tab has two dropdowns: <b>Observed</b> (IMD Gridded or IMD DRMS) and <b>Forecast value</b> (district maximum or district average). DRMS, being a district average, is compared with the forecast district average.</li>
+</ul>
+<h3>Forecasts compared</h3>
+<ul>
+  <li>Each model's forecast is matched to the observation by <b>district code</b> and cut to the same 08:30–08:30 IST window; the forecast district value is the <b>maximum</b> or the <b>average</b> of the grid points, to match the chosen observed value. For 6-hourly models (ECMWF AIFS, NOAA AIGFS) the totals at 03/15 UTC are interpolated in time.</li>
+  <li>Day 1: 12 UTC run of the day before (the run available at 08:30 IST) or 00 UTC run of the same day; Day 2 and Day 3 from runs one and two days earlier.</li>
+  <li>MME mean and median are formed from the models available for that window.</li>
+</ul>
+<h3>Scores (for the chosen threshold: ≥ 64.5, ≥ 115.6 or ≥ 204.5 mm)</h3>
+<div class="tbl"><table>
+<tr><th>Term</th><th>Meaning</th><th>Perfect</th></tr>
+<tr><td>Hit</td><td>Observed and forecast both at or above the threshold</td><td>—</td></tr>
+<tr><td>Miss</td><td>Observed only</td><td>0</td></tr>
+<tr><td>False alarm</td><td>Forecast only</td><td>0</td></tr>
+<tr><td>POD</td><td>hits ÷ (hits + misses)</td><td>1</td></tr>
+<tr><td>FAR</td><td>false alarms ÷ (hits + false alarms)</td><td>0</td></tr>
+<tr><td>CSI</td><td>hits ÷ (hits + misses + false alarms)</td><td>1</td></tr>
+<tr><td>Bias</td><td>(hits + false alarms) ÷ (hits + misses); above 1 = over-forecasting</td><td>1</td></tr>
+</table></div>
+<p>Districts without observed data are left out.</p>
+<h3>Permanent archive: monthly and seasonal verification</h3>
+<ul>
+  <li>Every observed day is stored for good in an archive (a separate branch, <code>verif-archive</code>, of the site's repository, also copied to the site as <code>verif/archive/</code>). Each day's file holds the observed district values and every model's district values for the six forecasts of that day (Day 1, 2 and 3 from the 12 UTC and the 00 UTC runs).</li>
+  <li>On the Verification tab, <b>Scores over</b> adds up the scores for: the selected day, the last 7 or 30 days, any month, any IMD season (winter Jan–Feb, pre-monsoon Mar–May, monsoon Jun–Sep, post-monsoon Oct–Dec), or the whole archive.</li>
+  <li><b>Download all daily scores (CSV)</b> gives one row per day, forecast (Day and run), model or MME, and threshold, with hits, misses, false alarms and correct negatives, ready for a spreadsheet: add up the counts over any period and compute POD, FAR, CSI and bias from the totals.</li>
+  <li>The archive begins with the observed day 01 Nov 2026; forecasts are in it from the 00 UTC 02 Nov run onwards.</li>
+</ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="schedule"><h2>10. Update times and archives <a class="top" href="#top">↑ top</a></h2>
+<div class="tbl"><table>
+<tr><th>Product</th><th>Updated (IST)</th><th>Archive</th></tr>
+<tr><td>T-phi grams</td><td>07:30 · 09:00 · 19:30 · 21:00</td><td>Rolling, all ascents</td></tr>
+<tr><td>IMD MME and A-Deck</td><td>10:30 · 13:30 · 14:30 · 22:30 · 01:30 · 02:30</td><td>15 days</td></tr>
+<tr><td>ECMWF ENS cyclone tracks</td><td>~13:30 (00 UTC run) · ~01:30 (12 UTC run)</td><td>15 days</td></tr>
+<tr><td>MME District Rainfall</td><td>Every 30 min, 08:40–16:10 and 20:40–04:10, as models arrive</td><td>7 days (14 runs)</td></tr>
+<tr><td>Ensemble District R/F Probability</td><td>Every 30 min, as ensembles arrive</td><td>7 days (14 runs)</td></tr>
+<tr><td>Verification</td><td>With each update; yesterday's rainfall usually by the next morning</td><td>10 observed days</td></tr>
+</table></div>
+<p class="note">Pages refresh themselves every few minutes while open. If a page looks out of date on a phone, close the tab and open the link again.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="sources"><h2>11. Data sources and acknowledgements <a class="top" href="#top">↑ top</a></h2>
+<ul>
+  <li><b>IMD</b>: CLIMS RS/RW data; NWP Division SFTP server (IMD GFS, NCUM-G and NCUM-R fields and rainfall, cut to the region); IMD Pune real-time gridded rainfall; iRAINS District Rainfall Monitoring Scheme API (gauge-based district rainfall).</li>
+  <li><b>ECMWF</b> open data (CC BY 4.0): IFS, AIFS, ENS rainfall and tropical-cyclone tracks.</li>
+  <li><b>NOAA/NCEP</b>: GFS, AIGFS and GEFS (NOAA Open Data Dissemination on AWS; NOMADS).</li>
+  <li><b>Environment and Climate Change Canada</b>: GDPS and GEPS (MSC Datamart, open data licence).</li>
+  <li><b>DWD</b> (ICON) and <b>Météo-France</b> (ARPEGE) open data.</li>
+  <li><b>JTWC / UCAR RAL</b>: open a-deck model tracks.</li>
+  <li>District boundaries: IMD DRMS district map (742 districts, with IMD district codes); IMD meteorological subdivisions (36).</li>
+  <li>Computing and hosting: GitHub Actions and GitHub Pages (free).</li>
+</ul>
+<p>Questions and suggestions: <a href="mailto:krishhindustan@gmail.com">krishhindustan@gmail.com</a></p>
+</section>
+
+<footer>These products are automated guidance for forecasters and are not official IMD forecasts. Read them with IMD's official forecasts and warnings.</footer>
+</div>
+<script>
+// Inside the site's main page on a phone: make the frame as tall as this page, so there is only one scroll
+(function(){
+  let f=null; try{ f=window.frameElement; }catch(e){}
+  if (!f) return;
+  function fit(){
+    if (innerWidth>700){ if (f.dataset.fit){ f.style.height=f.dataset.h0; f.style.minHeight=f.dataset.m0; delete f.dataset.fit; } return; }
+    if (!f.dataset.fit){ f.dataset.fit='1'; f.dataset.h0=f.style.height; f.dataset.m0=f.style.minHeight; }
+    const h=document.documentElement.scrollHeight;
+    if (!(Math.abs(parseFloat(f.style.height)-h)<=2)){ f.style.minHeight='0'; f.style.height=h+'px'; }
+  }
+  addEventListener('resize',fit); if (window.ResizeObserver) new ResizeObserver(fit).observe(document.body); fit();
+})();
+</script>
+</body>
+</html>
