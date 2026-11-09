@@ -9,6 +9,9 @@ For every archived run it computes, per model:
   • landfall point error (km) and landfall time error (h, + = forecast later than observed)
 Forecast tracks are copied into the permanent verification archive (VERIF_ARCHIVE/trackverif/tracks/), so a storm can
 still be verified after its runs have left the 15-day web archive. Results: SITE/trackverif/summary.json + figures.
+Every run now holds forecasts for BOTH basins (files prefixed ars_ / bob_ by nwp_runner.py). They are archived per basin
+(tracks/<run>/ars/, tracks/<run>/bob/) and each storm is verified with the forecast set that is about that storm.
+Runs archived before the two-basin version (tracks/<run>/*.txt) are still read.
 Environment: SITE (default ./site), VERIF_ARCHIVE (default ./archive).
 """
 import datetime as dt, glob, io, json, math, os, re, shutil, urllib.request, zipfile
@@ -18,6 +21,7 @@ ARCH = os.path.abspath(os.environ.get("VERIF_ARCHIVE", "archive"))
 OUT = os.path.join(SITE, "trackverif"); TRK = os.path.join(ARCH, "trackverif", "tracks")
 os.makedirs(OUT, exist_ok=True); os.makedirs(TRK, exist_ok=True)
 LEADS = [0, 12, 24, 36, 48, 72, 96, 120]
+BAS = ("ars", "bob")                                # basin prefixes used by nwp_runner.py (Arabian Sea / Bay of Bengal)
 # member files inside the MME package -> name shown on the page
 MME_MEMBERS = {"MMM_track.txt": "IMD MME", "IMD_GFS_track.txt": "IMD GFS", "NCUM_track.txt": "NCUM-G", "NCUMR_track.txt": "NCUM-R",
                "NCEP_GFS_track.txt": "NCEP GFS", "CMC_GDPS_track.txt": "CMC GDPS", "NGX_track.txt": "NAVGEM"}
@@ -47,33 +51,45 @@ def read_track(path):
     return out
 
 # ---------- 1. keep the forecast tracks of every run in the permanent archive
-def store(ic, name, data):
-    d = os.path.join(TRK, ic); os.makedirs(d, exist_ok=True)
+def split_tag(fname):
+    """'bob_MMM_track.txt' -> ('bob', 'MMM_track.txt'); files of runs made before the two-basin version have no prefix."""
+    for t in BAS:
+        if fname.startswith(t + "_"): return t, fname[len(t) + 1:]
+    return None, fname
+def store(ic, name, data, tag=None):
+    d = os.path.join(TRK, ic, tag) if tag else os.path.join(TRK, ic); os.makedirs(d, exist_ok=True)
     open(os.path.join(d, re.sub(r"[^A-Za-z0-9]+", "_", name) + ".txt"), "wb").write(data)
 for d in glob.glob(os.path.join(SITE, "mme", "*")):
     ic = os.path.basename(d)
     if not re.fullmatch(r"\d{10}", ic): continue
-    if os.path.exists(os.path.join(d, "MMM_track.txt")): store(ic, "IMD MME", open(os.path.join(d, "MMM_track.txt"), "rb").read())
-    for z in glob.glob(os.path.join(d, "*.zip")):
-        try:
-            with zipfile.ZipFile(z) as zf:
-                for n in zf.namelist():
-                    b = os.path.basename(n)
-                    if "adeck/" in n: continue                      # the a-deck copies are not MME members
-                    if b in MME_MEMBERS and b != "MMM_track.txt": store(ic, MME_MEMBERS[b], zf.read(n))
-        except Exception as e: print(f"{ic}: cannot read package ({e})")
+    for p in glob.glob(os.path.join(d, "*")):
+        tag, rest = split_tag(os.path.basename(p))
+        if rest == "MMM_track.txt": store(ic, "IMD MME", open(p, "rb").read(), tag)
+        elif rest.endswith(".zip"):
+            try:
+                with zipfile.ZipFile(p) as zf:
+                    for n in zf.namelist():
+                        b = os.path.basename(n)
+                        if "adeck/" in n: continue                      # the a-deck copies are not MME members
+                        if b in MME_MEMBERS and b != "MMM_track.txt": store(ic, MME_MEMBERS[b], zf.read(n), tag)
+            except Exception as e: print(f"{ic}: cannot read package ({e})")
 for d in glob.glob(os.path.join(SITE, "ens", "*")):
     ic = os.path.basename(d)
     if not re.fullmatch(r"\d{10}", ic): continue
-    for f, name in ENS_FILES.items():
-        if os.path.exists(os.path.join(d, f)): store(ic, name, open(os.path.join(d, f), "rb").read())
+    for p in glob.glob(os.path.join(d, "*")):
+        tag, rest = split_tag(os.path.basename(p))
+        if rest in ENS_FILES: store(ic, ENS_FILES[rest], open(p, "rb").read(), tag)
 NAME_OF = {re.sub(r"[^A-Za-z0-9]+", "_", n): n for n in ORDER}
-FC = {}                                             # ic -> {model: track}
+FC = {}                                             # ic -> [ {model: track}, ... ]  one set per basin (older runs: one set)
 for d in sorted(glob.glob(os.path.join(TRK, "*"))):
     ic = os.path.basename(d)
-    for f in glob.glob(os.path.join(d, "*.txt")):
-        n = NAME_OF.get(os.path.basename(f)[:-4]); tr = read_track(f)
-        if n and len(tr) >= 2: FC.setdefault(ic, {})[n] = tr
+    for sub in [d] + [os.path.join(d, t) for t in BAS]:
+        if not os.path.isdir(sub): continue
+        S_ = {}
+        for f in glob.glob(os.path.join(sub, "*.txt")):
+            n = NAME_OF.get(os.path.basename(f)[:-4]); tr = read_track(f)
+            if n and len(tr) >= 2: S_[n] = tr
+        if S_: FC.setdefault(ic, []).append(S_)
 print(f"forecast runs with tracks: {len(FC)}")
 
 # ---------- 2. observed tracks (JTWC best track) for this year's North Indian Ocean systems
@@ -147,18 +163,25 @@ def near(la, lo):
     return f"near {n}" if d < 15 else f"{d:.0f} km from {n}"
 
 # ---------- 4. errors per run and model
+SEL = {}                                            # (storm id, run) -> the forecast set (one basin) used for that storm
 summary = {"updated": (dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)).strftime("%d %b %Y %H:%M IST"),
            "leads": LEADS, "models": ORDER, "storms": []}
 for sid, st in sorted(STORMS.items()):
     obs_lf = landfall([(t, *v) for t, v in st["obs"].items()])
     runs = []
     for ic in sorted(FC):
-        t0 = T(ic); o0 = obs_at(st, t0); ref = FC[ic].get("IMD MME") or next(iter(FC[ic].values()))
-        f0 = next(((la, lo) for t, la, lo, *_ in ref if t == t0), (ref[0][1], ref[0][2]))
-        if not o0 or km(o0[0], o0[1], *f0) > 400: continue           # run is not about this storm
+        t0 = T(ic); o0 = obs_at(st, t0)
+        if not o0: continue
+        S = None
+        for cand in FC[ic]:                         # each basin's forecast set: keep the one that is about this storm
+            ref = cand.get("IMD MME") or next(iter(cand.values()))
+            f0 = next(((la, lo) for t, la, lo, *_ in ref if t == t0), (ref[0][1], ref[0][2]))
+            if km(o0[0], o0[1], *f0) <= 400: S = cand; break
+        if S is None: continue                      # no forecast set of this run is about this storm
+        SEL[(sid, ic)] = S
         row = {"ic": ic, "label": f"{t0:%H} UTC {t0.day} {t0:%b}", "models": {}}
         for mdl in ORDER:
-            tr = FC[ic].get(mdl)
+            tr = S.get(mdl)
             if not tr: continue
             fc = {t: (la, lo, w, p) for t, la, lo, w, p in tr}
             r = {"dpe": {}, "dv": {}, "dp": {}}
@@ -218,8 +241,8 @@ for sid, st in sorted(STORMS.items()):
         storm["figures"].append({"t": "Mean track error by lead time", "f": f"trackverif/{fn}"})
         # (b) observed track and the MME / ENS-mean forecasts of every run, with landfall points
         import cartopy.crs as ccrs, cartopy.feature as cf
-        la_ = [v[0] for v in o.values()] + [p[1] for r in runs for m_ in ("IMD MME", "ECMWF ENS mean") for p in FC[r["ic"]].get(m_, [])]
-        lo_ = [v[1] for v in o.values()] + [p[2] for r in runs for m_ in ("IMD MME", "ECMWF ENS mean") for p in FC[r["ic"]].get(m_, [])]
+        la_ = [v[0] for v in o.values()] + [p[1] for r in runs for m_ in ("IMD MME", "ECMWF ENS mean") for p in SEL[(sid, r["ic"])].get(m_, [])]
+        lo_ = [v[1] for v in o.values()] + [p[2] for r in runs for m_ in ("IMD MME", "ECMWF ENS mean") for p in SEL[(sid, r["ic"])].get(m_, [])]
         ext = [max(35, min(lo_) - 2), min(105, max(lo_) + 2), max(-5, min(la_) - 1.5), min(40, max(la_) + 1.5)]
         fig = plt.figure(figsize=(12.5, 6.4), dpi=130)
         for k, mdl in enumerate(("IMD MME", "ECMWF ENS mean")):
@@ -228,7 +251,7 @@ for sid, st in sorted(STORMS.items()):
             ax.add_feature(cf.COASTLINE.with_scale("50m"), lw=.7); ax.add_feature(cf.BORDERS.with_scale("50m"), lw=.4, color="gray")
             cm = plt.get_cmap("viridis", max(2, len(runs)))
             for i, r in enumerate(runs):
-                tr = FC[r["ic"]].get(mdl)
+                tr = SEL[(sid, r["ic"])].get(mdl)
                 if not tr: continue
                 ax.plot([p[2] for p in tr], [p[1] for p in tr], color=cm(i), lw=1.3, alpha=.85, transform=ccrs.PlateCarree(),
                         label=r["label"] if (i % max(1, len(runs) // 6) == 0) else None)
@@ -247,7 +270,7 @@ for sid, st in sorted(STORMS.items()):
         for ax, mdl in zip(axs, ("IMD MME", "ECMWF ENS mean")):
             cm = plt.get_cmap("viridis", max(2, len(runs)))
             for i, r in enumerate(runs):
-                tr = FC[r["ic"]].get(mdl)
+                tr = SEL[(sid, r["ic"])].get(mdl)
                 if tr: ax.plot([p[0] for p in tr], [p[3] for p in tr], color=cm(i), lw=1.2, alpha=.85)
             ax.plot(ot, [o[t][2] for t in ot], "-o", color="#d62728", lw=3, ms=4, label="Observed (JTWC, 1-min wind)")
             ax.set_title(f"{mdl}: maximum sustained wind of every run", fontsize=11); ax.grid(alpha=.4); ax.legend(fontsize=8)
