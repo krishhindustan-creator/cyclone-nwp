@@ -1,19 +1,28 @@
 #!/usr/bin/env python3
 """
-nwp_runner.py — runs the ECMWF ensemble and the IMD MME 7-model scripts for the latest run,
-adds the results to the web site folder, keeps the last KEEP_DAYS days and writes manifest.json.
-Called by GitHub Actions (.github/workflows/nwp.yml); can also be run by hand:
+nwp_runner.py — runs the ECMWF ensemble and the IMD MME 7-model scripts for the latest run, ONCE FOR EACH BASIN
+(A = Arabian Sea, B = Bay of Bengal), adds the results to the web site folder, keeps the last KEEP_DAYS days
+and writes manifest.json.  Every figure/file is tagged with its basin ("b": "ars" / "bob") so the web page can
+show a basin drop-down on the ECMWF ENS and IMD MME tabs.
+Called by GitHub Actions (.github/workflows/nwp.yaml); can also be run by hand:
     RUN_ID=2026102600 IMD_PWD=... python nwp_runner.py
 Environment:  RUN_ID (YYYYMMDDHH, default: 04–15 UTC -> today 00 UTC, otherwise the latest 12 UTC run), IMD_PWD (secret),
-              KEEP_DAYS (default 3), FORCE=1 (redo a run already on the site), SITE (default ./site)
+              KEEP_DAYS (default 15), FORCE=1 (redo a run already on the site), SITE (default ./site)
 """
-import datetime as dt, glob, json, os, re, shutil, subprocess, sys, time
+import datetime as dt, glob, json, os, re, shutil, subprocess, sys, textwrap, time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.abspath(os.environ.get("SITE", os.path.join(HERE, "site")))
 WORK = os.path.abspath(os.path.join(HERE, "work"))
 KEEP_DAYS = float(os.environ.get("KEEP_DAYS", "15"))
 FORCE = os.environ.get("FORCE", "") not in ("", "0", "false", "False")
+
+BASINS = ["A", "B"]                                        # order = order in which they are run
+BN  = {"A": "Arabian Sea", "B": "Bay of Bengal"}
+TAG = {"A": "ars", "B": "bob"}
+BNT = {"ars": "Arabian Sea", "bob": "Bay of Bengal"}
+# messages of the Colab scripts when the basin simply has no system (not an error)
+NOSYS = ("No ECMWF track found", "No ENS member matched")
 
 def latest_run():
     """04–15 UTC -> today's 00 UTC run; 16–23 UTC -> today's 12 UTC run; 00–03 UTC -> yesterday's 12 UTC run."""
@@ -47,24 +56,29 @@ LABEL = f"{IC_T:%H} UTC {IC_T.day} {IC_T:%b %Y}"
 os.makedirs(SITE, exist_ok=True); os.makedirs(WORK, exist_ok=True)
 print(f"Run {RUN_ID} ({LABEL}); site {SITE}; keep {KEEP_DAYS:g} days; IMD models {'on' if IMD_MODELS == 'on' else 'off'}")
 
-def headless(script, out):
-    """Colab script -> plain Python: drop '!pip' lines, set DATE/RUN, password from IMD_PWD."""
+def bwork(b):
+    """Own working folder per basin, so the two basins never overwrite each other's files."""
+    d = os.path.join(WORK, "basin_" + b); os.makedirs(d, exist_ok=True); return d
+
+def headless(script, out, basin):
+    """Colab script -> plain Python: drop '!pip' lines, set DATE/RUN/BASIN, password from IMD_PWD."""
     s = open(os.path.join(HERE, script), encoding="utf-8").read()
     s = "\n".join(l for l in s.splitlines() if not l.lstrip().startswith("!"))
     s = re.sub(r'^DATE\s*=.*$', f'DATE  = "{RUN_ID[:8]}"', s, count=1, flags=re.M)
     s = re.sub(r'^RUN\s*=.*$', f'RUN   = "{RUN_ID[8:]}"', s, count=1, flags=re.M)
+    s = re.sub(r'^BASIN\s*=.*$', f'BASIN = "{basin}"', s, count=1, flags=re.M)      # "A" or "B" instead of "auto"
     # on GitHub the IMD step may take at most IMD_MAX_MINUTES (default 10), then the MME goes on without it
     s = re.sub(r'^IMD_MAX_MINUTES\s*=.*$', f'IMD_MAX_MINUTES = {float(os.environ.get("IMD_MAX_MINUTES", "10")):g}', s, count=1, flags=re.M)
     s = ("import getpass as _gp, os as _os\n_gp.getpass = lambda prompt='': _os.environ.get('IMD_PWD', '')\n"
          "import matplotlib; matplotlib.use('Agg')\n") + s
     open(out, "w", encoding="utf-8").write(s)
 
-def run(script, tag, minutes):
-    path = os.path.join(WORK, f"{tag}_headless.py"); headless(script, path)
-    print(f"\n===== {script} =====", flush=True)
+def run(script, tag, minutes, basin):
+    path = os.path.join(WORK, f"{tag}_{basin}_headless.py"); headless(script, path, basin)
+    print(f"\n===== {script} — {BN[basin]} =====", flush=True)
     t0 = time.time(); lines = []
     # stream the output live (so the GitHub log shows progress) and keep a copy for the notes
-    p = subprocess.Popen([sys.executable, "-u", path], cwd=WORK, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    p = subprocess.Popen([sys.executable, "-u", path], cwd=bwork(basin), stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                          text=True, bufsize=1)
     try:
         for line in p.stdout:
@@ -77,54 +91,95 @@ def run(script, tag, minutes):
     print(f"({(time.time() - t0) / 60:.1f} min)", flush=True)
     return "".join(lines)
 
-def done(kind):
+def done(kind, b):
     """ENS: done once published. MME: done only when it was complete (every model's own run, none missing);
-    otherwise it is rebuilt at the next update so late models are added."""
-    f = os.path.join(SITE, kind, RUN_ID, "meta.json")
+    otherwise it is rebuilt at the next update so late models are added.
+    A 'no system' placeholder is never 'done': the basin is checked again at every update."""
+    f = os.path.join(SITE, kind, RUN_ID, f"meta_{TAG[b]}.json")
     if FORCE or not os.path.exists(f): return False
-    return kind == "ens" or json.load(open(f)).get("complete", False)
+    m = json.load(open(f))
+    if m.get("nosys"): return False
+    return kind == "ens" or m.get("complete", False)
 
-def publish(kind, items, files, note, complete=True):
-    d = os.path.join(SITE, kind, RUN_ID); shutil.rmtree(d, ignore_errors=True); os.makedirs(d)
-    its, fls = [], []
-    for title, src in items:
-        if src and os.path.exists(src):
-            fn = os.path.basename(src); shutil.copy(src, os.path.join(d, fn)); its.append({"t": title, "f": f"{kind}/{RUN_ID}/{fn}"})
-    for title, src in files:
-        if src and os.path.exists(src):
-            fn = os.path.basename(src); shutil.copy(src, os.path.join(d, fn)); fls.append({"t": title, "f": f"{kind}/{RUN_ID}/{fn}"})
-    if not its:
-        shutil.rmtree(d, ignore_errors=True); print(f"{kind}: nothing to publish"); return False
-    json.dump({"ic": RUN_ID, "label": LABEL, "items": its, "files": fls, "note": note, "complete": complete,
-               "made": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")}, open(os.path.join(d, "meta.json"), "w"))
-    print(f"{kind}: published {len(its)} figures, {len(fls)} files"); return True
+def publish(kind, b, items, files, note, complete=True, nosys=False):
+    """Copy one basin's figures/files into site/<kind>/<run>/ (file names prefixed ars_/bob_) and write meta_<tag>.json."""
+    tag = TAG[b]
+    its_src = [(t, s) for t, s in items if s and os.path.exists(s)]
+    fls_src = [(t, s) for t, s in files if s and os.path.exists(s)]
+    if not its_src:
+        print(f"{kind} [{BN[b]}]: nothing to publish"); return False
+    d = os.path.join(SITE, kind, RUN_ID)
+    if os.path.exists(os.path.join(d, "meta.json")): shutil.rmtree(d, ignore_errors=True)   # made by the one-basin version
+    os.makedirs(d, exist_ok=True)
+    for old in glob.glob(os.path.join(d, tag + "_*")): os.remove(old)
+    def put(lst):
+        out = []
+        for title, src in lst:
+            fn = f"{tag}_{os.path.basename(src)}"; shutil.copy(src, os.path.join(d, fn))
+            out.append({"t": title, "f": f"{kind}/{RUN_ID}/{fn}", "b": tag})
+        return out
+    its, fls = put(its_src), put(fls_src)
+    json.dump({"ic": RUN_ID, "label": LABEL, "b": tag, "items": its, "files": fls, "note": note, "complete": complete,
+               "nosys": nosys, "made": dt.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")},
+              open(os.path.join(d, f"meta_{tag}.json"), "w"))
+    print(f"{kind} [{BN[b]}]: published {len(its)} figures, {len(fls)} files" + (" (no system)" if nosys else "")); return True
+
+def placeholder(path, title, msg):
+    """Plain picture saying that the basin has no system, so users can tell 'nothing there' from 'not updated'."""
+    import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt
+    fig = plt.figure(figsize=(8, 4.6), dpi=130, facecolor="#f3f6f9")
+    fig.text(0.5, 0.70, title, ha="center", fontsize=17, fontweight="bold", color="#1f3b63")
+    fig.text(0.5, 0.46, textwrap.fill(msg, 62), ha="center", va="center", fontsize=12, color="#222")
+    fig.text(0.5, 0.12, f"IC {LABEL}  ·  checked {dt.datetime.utcnow():%d %b %H:%M} UTC", ha="center", fontsize=9, color="#666")
+    fig.savefig(path, facecolor=fig.get_facecolor()); plt.close(fig)
+
+def publish_nosys(kind, b, out, what):
+    """If the script stopped only because this basin has no system, publish a placeholder (retried at each update)."""
+    if not any(s in out for s in NOSYS): return
+    p = os.path.join(bwork(b), f"nosys_{kind}_{RUN_ID}.png")
+    placeholder(p, f"{what} — {BN[b]}",
+                "No tropical system is tracked over this basin in the ECMWF forecast for this run. It is checked again at every update.")
+    publish(kind, b, [(f"{BN[b]}: no system", p)], [], "No system tracked over this basin in this run.", complete=False, nosys=True)
 
 def grab(text, pattern):
     m = re.search(pattern, text, re.M); return m.group(1).strip() if m else ""
 
-# ---------------- 1. ECMWF ensemble ----------------
-if done("ens"):
-    print("ECMWF ENS already on the site for this run (set FORCE=1 to redo)")
-else:
-    out = run("ECMWF_ensemble_colab.py", "ens", 30)
-    P = os.path.join(WORK, f"ECMWF_ENS_{RUN_ID}", f"ECMWF_ENS_package_{RUN_ID}")
-    Z = os.path.join(WORK, f"ECMWF_ENS_{RUN_ID}", f"ECMWF_ENS_package_{RUN_ID}.zip")
+def share_imd_cache(b):
+    """Both basins need the same IMD files: the second basin reuses the first one's downloads (drk folder)."""
+    if b == BASINS[0]: return
+    src = os.path.join(bwork(BASINS[0]), f"MME7_{RUN_ID}", "drk")
+    dst_dir = os.path.join(bwork(b), f"MME7_{RUN_ID}"); dst = os.path.join(dst_dir, "drk")
+    if os.path.isdir(src) and not os.path.exists(dst):
+        os.makedirs(dst_dir, exist_ok=True)
+        try: os.symlink(src, dst)
+        except OSError: shutil.copytree(src, dst)
+
+# ---------------- 1. ECMWF ensemble, each basin ----------------
+for b in BASINS:
+    if done("ens", b):
+        print(f"ECMWF ENS [{BN[b]}] already on the site for this run (set FORCE=1 to redo)"); continue
+    out = run("ECMWF_ensemble_colab.py", "ens", 30, b)
+    P = os.path.join(bwork(b), f"ECMWF_ENS_{RUN_ID}", f"ECMWF_ENS_package_{RUN_ID}")
+    Z = os.path.join(bwork(b), f"ECMWF_ENS_{RUN_ID}", f"ECMWF_ENS_package_{RUN_ID}.zip")
     lines = [l.strip() for l in out.splitlines() if re.match(r"\s+(Ensemble-mean|HRES|Members|Median|Most likely)", l)]
     note = ("<br>".join(re.sub(r"\s{2,}", ": ", l, count=1) for l in lines)) if lines else ""
-    publish("ens", [("Comparison with previous 2 runs", f"{P}/ECMWF_ENS_comparison_last3runs.png"),
-                    ("Landfall summary", f"{P}/ECMWF_ENS_landfall_summary.png"), ("Spaghetti tracks", f"{P}/E1_ENS_spaghetti.png"),
-                    ("Strike probability", f"{P}/E2_ENS_strike_probability.png"), ("MSW plume", f"{P}/E3_ENS_MSW_plume.png"),
-                    ("MSLP plume", f"{P}/E4_ENS_MSLP_plume.png")],
-            [("Package (zip)", Z), ("Ensemble-mean track", f"{P}/ECMWF_ENSMEAN_track.txt"), ("HRES track", f"{P}/ECMWF_HRES_track.txt"),
-             ("Member landfalls (csv)", f"{P}/ECMWF_ENS_member_landfalls.csv")], note)
+    ok = publish("ens", b,
+                 [("Comparison with previous 2 runs", f"{P}/ECMWF_ENS_comparison_last3runs.png"),
+                  ("Landfall summary", f"{P}/ECMWF_ENS_landfall_summary.png"), ("Spaghetti tracks", f"{P}/E1_ENS_spaghetti.png"),
+                  ("Strike probability", f"{P}/E2_ENS_strike_probability.png"), ("MSW plume", f"{P}/E3_ENS_MSW_plume.png"),
+                  ("MSLP plume", f"{P}/E4_ENS_MSLP_plume.png")],
+                 [("Package (zip)", Z), ("Ensemble-mean track", f"{P}/ECMWF_ENSMEAN_track.txt"), ("HRES track", f"{P}/ECMWF_HRES_track.txt"),
+                  ("Member landfalls (csv)", f"{P}/ECMWF_ENS_member_landfalls.csv")], note)
+    if not ok: publish_nosys("ens", b, out, "ECMWF Ensemble")
 
-# ---------------- 2. IMD MME 7 models ----------------
-if done("mme"):
-    print("MME already complete on the site for this run (set FORCE=1 to redo)")
-else:
-    out = run("MME_7models_colab.py", "mme", 60 if IMD_MODELS == "on" else 40)
-    P = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}")
-    Z = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}.zip")
+# ---------------- 2. IMD MME 7 models, each basin (+ 2b. A-Deck from the MME package) ----------------
+for b in BASINS:
+    if done("mme", b):
+        print(f"MME [{BN[b]}] already complete on the site for this run (set FORCE=1 to redo)"); continue
+    share_imd_cache(b)
+    out = run("MME_7models_colab.py", "mme", 60 if IMD_MODELS == "on" else 40, b)
+    P = os.path.join(bwork(b), f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}")
+    Z = os.path.join(bwork(b), f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}.zip")
     F = os.path.join(P, "figures")
     hdr = grab(out, r"^(#MME-Mean of .*)$").lstrip("#"); lf = grab(out, r"^%%Landfall (.*?)%%")
     older = grab(out, r"Older runs used:\s*(.*)$"); members = grab(out, r"MME members:\s*(.*)$")
@@ -140,30 +195,51 @@ else:
     skipped = [x for x in skipped if "skipped by user" not in x]          # IMD switched off on purpose
     if IMD_MODELS != "on": note.append("IMD GFS, NCUM-G and NCUM-R are not run on GitHub (IMD server too slow from there) — use the Colab MME script for them")
     if skipped: note.append("Not included: " + "; ".join(s.split("  ")[0] for s in skipped[:6]))
-    publish("mme", [("Combined: track, MSW, MSLP", f"{F}/0_combined_track_MSW_MSLP.png"), ("Model tracks", f"{F}/1_model_tracks.png"),
-                    ("MSW, all models", f"{F}/2_model_MSW.png"), ("MSLP, all models", f"{F}/3_model_MSLP.png"),
-                    ("MME track and MSW", f"{F}/4_MME_track_MSW.png"), ("MME MSLP and 6-hourly table", f"{F}/5_MME_MSLP_table.png"),
-                    ("Landfall table", f"{F}/6_landfall_table.png")],
-            [("Package (zip)", Z), ("MMM_track.txt (IMD format)", f"{P}/MMM_track.txt")], "<br>".join(note),
-            complete=not older and not [x for x in skipped if "not numbered" not in x])
+    ok = publish("mme", b,
+                 [("Combined: track, MSW, MSLP", f"{F}/0_combined_track_MSW_MSLP.png"), ("Model tracks", f"{F}/1_model_tracks.png"),
+                  ("MSW, all models", f"{F}/2_model_MSW.png"), ("MSLP, all models", f"{F}/3_model_MSLP.png"),
+                  ("MME track and MSW", f"{F}/4_MME_track_MSW.png"), ("MME MSLP and 6-hourly table", f"{F}/5_MME_MSLP_table.png"),
+                  ("Landfall table", f"{F}/6_landfall_table.png")],
+                 [("Package (zip)", Z), ("MMM_track.txt (IMD format)", f"{P}/MMM_track.txt")], "<br>".join(note),
+                 complete=not older and not [x for x in skipped if "not numbered" not in x])
+    if not ok: publish_nosys("mme", b, out, "IMD MME")
 
-# ---------------- 2b. A-Deck (from the MME package) ----------------
-A = os.path.join(WORK, f"MME7_{RUN_ID}", f"MME7_package_{RUN_ID}", "adeck")
-if os.path.isdir(A) and not done("adeck"):
-    names = {"NGX_track.txt": "NAVGEM (US Navy)", "UKM_track.txt": "UKMO", "CMC_ADECK_track.txt": "CMC (a-deck)",
-             "GEFS_MEAN_track.txt": "GEFS ensemble mean", "CENS_MEAN_track.txt": "Canadian ensemble mean",
-             "NAVENS_MEAN_track.txt": "Navy ensemble mean"}
-    present = [v for k, v in names.items() if os.path.exists(os.path.join(A, k))]
-    storm_ = grab(out, r"a-deck: storm (io\d+)").upper() if "out" in globals() else ""
-    note = ["JTWC/UCAR a-deck model tracks" + (f" — storm {storm_}" if storm_ else "")]
-    if present: note.append("Models: " + ", ".join(present))
-    note.append("NAVGEM is also an MME member; the other a-deck models are shown here for comparison only")
-    publish("adeck", [("A-Deck model tracks", os.path.join(A, "ADECK_quicklook.png"))],
-            [(f"{v} track", os.path.join(A, k)) for k, v in names.items()], "<br>".join(note), complete=False)
-elif not os.path.isdir(A):
-    print("adeck: no a-deck this run (system not numbered by JTWC, or a-deck not available)")
+    # ---- A-Deck (from this basin's MME package) ----
+    A = os.path.join(P, "adeck")
+    if os.path.isdir(A):
+        names = {"NGX_track.txt": "NAVGEM (US Navy)", "UKM_track.txt": "UKMO", "CMC_ADECK_track.txt": "CMC (a-deck)",
+                 "GEFS_MEAN_track.txt": "GEFS ensemble mean", "CENS_MEAN_track.txt": "Canadian ensemble mean",
+                 "NAVENS_MEAN_track.txt": "Navy ensemble mean"}
+        present = [v for k, v in names.items() if os.path.exists(os.path.join(A, k))]
+        storm_ = grab(out, r"a-deck: storm (io\d+)").upper()
+        anote = ["JTWC/UCAR a-deck model tracks" + (f" — storm {storm_}" if storm_ else "")]
+        if present: anote.append("Models: " + ", ".join(present))
+        anote.append("NAVGEM is also an MME member; the other a-deck models are shown here for comparison only")
+        publish("adeck", b, [(f"{BN[b]}: A-Deck model tracks", os.path.join(A, "ADECK_quicklook.png"))],
+                [(f"{v} track", os.path.join(A, k)) for k, v in names.items()], "<br>".join(anote), complete=False)
+    else:
+        print(f"adeck [{BN[b]}]: no a-deck this run (system not numbered by JTWC, or a-deck not available)")
 
 # ---------------- 3. keep KEEP_DAYS days, write manifest ----------------
+def merge_meta(d):
+    """One run = the basin parts (meta_ars.json, meta_bob.json) merged; runs made by the old one-basin version keep meta.json."""
+    parts = []
+    for tag in ("ars", "bob"):
+        f = os.path.join(d, f"meta_{tag}.json")
+        if os.path.exists(f):
+            try: parts.append(json.load(open(f)))
+            except Exception: pass
+    if not parts:
+        try: return json.load(open(os.path.join(d, "meta.json")))
+        except Exception: return None
+    m = {"ic": parts[0]["ic"], "label": parts[0]["label"], "items": [], "files": [], "notes": {}, "nosys": {},
+         "complete": all(p.get("complete") for p in parts), "made": max(p.get("made", "") for p in parts)}
+    for p in parts:
+        m["items"] += p["items"]; m["notes"][p["b"]] = p.get("note", ""); m["nosys"][p["b"]] = bool(p.get("nosys"))
+        m["files"] += [dict(o, t=f"{BNT[p['b']]} — {o['t']}") for o in p.get("files", [])]
+    m["note"] = "<br>".join(f"<b>{BNT[p['b']]}</b> — {p.get('note', '')}" for p in parts)   # used by the A-Deck tab
+    return m
+
 cut = dt.datetime.utcnow() - dt.timedelta(days=KEEP_DAYS)
 man = {"ens": [], "mme": [], "adeck": []}
 for kind in man:
@@ -173,20 +249,20 @@ for kind in man:
         except ValueError: continue
         if t < cut:
             shutil.rmtree(d, ignore_errors=True); print(f"removed {kind}/{ic} (older than {KEEP_DAYS:g} days)"); continue
-        try: man[kind].append(json.load(open(os.path.join(d, "meta.json"))))
-        except Exception: pass
+        r = merge_meta(d)
+        if r: man[kind].append(r)
 ist = dt.datetime.utcnow() + dt.timedelta(hours=5, minutes=30)
 man["updated"] = f"{ist:%d %b %Y %H:%M} IST"
 man["keep_days"] = KEEP_DAYS
 
-def ens_compare_png(runs, out):
-    """WhatsApp-size table comparing the kept ECMWF ENS runs (oldest -> newest), built from their notes."""
+def ens_compare_png(runs, out, tag):
+    """WhatsApp-size table comparing the kept ECMWF ENS runs of one basin (oldest -> newest), built from their notes."""
     import matplotlib; matplotlib.use("Agg"); import matplotlib.pyplot as plt, textwrap
-    cols = list(reversed(runs))[-6:]
+    cols = [r for r in reversed(runs) if (r.get("notes") or {}).get(tag) and not (r.get("nosys") or {}).get(tag)][-6:]
     S = []
     for r in cols:
         o = {}
-        for l in (r.get("note") or "").split("<br>"):
+        for l in r["notes"][tag].split("<br>"):
             if ": " in l: k, v = l.split(": ", 1); o[k.strip()] = v.strip()
         S.append(o)
     keys = []
@@ -199,7 +275,7 @@ def ens_compare_png(runs, out):
     hdr = [""] + [r["label"].rsplit(" ", 1)[0].replace(" UTC ", " UTC\n") for r in cols]
     w = 2.6 + 2.0 * len(cols)
     fig = plt.figure(figsize=(w, 1.05 * len(rows) + 2.2), dpi=150)
-    fig.text(0.5, 0.97, "ECMWF Ensemble — run comparison", ha="center", va="top", fontsize=16, fontweight="bold", color="#1f3b63")
+    fig.text(0.5, 0.97, f"ECMWF Ensemble — run comparison ({BNT[tag]})", ha="center", va="top", fontsize=16, fontweight="bold", color="#1f3b63")
     fig.text(0.5, 0.925, f"Last {len(cols)} runs (oldest → newest)  ·  {man['updated']}", ha="center", va="top", fontsize=10)
     ax = fig.add_axes([0.02, 0.06, 0.96, 0.82]); ax.axis("off")
     tb = ax.table(cellText=rows, colLabels=hdr, cellLoc="center", bbox=[0, 0, 1, 1],
@@ -213,11 +289,16 @@ def ens_compare_png(runs, out):
     fig.text(0.5, 0.02, "Source: ECMWF open data (CC BY 4.0); own analysis", ha="center", fontsize=8, style="italic", color="#555")
     plt.savefig(out, dpi=150, facecolor="white", bbox_inches="tight", pad_inches=0.2); plt.close()
     return True
-try:
-    if ens_compare_png(man["ens"], os.path.join(SITE, "ens", "ENS_comparison.png")):
-        man["ens_compare"] = "ens/ENS_comparison.png"; print("ENS comparison table written")
-except Exception as e:
-    print("ENS comparison table failed:", e)
+
+man["ens_compare"] = {}
+for b in BASINS:
+    tag = TAG[b]
+    try:
+        if ens_compare_png(man["ens"], os.path.join(SITE, "ens", f"ENS_comparison_{tag}.png"), tag):
+            man["ens_compare"][tag] = f"ens/ENS_comparison_{tag}.png"; print(f"ENS comparison table written [{BN[b]}]")
+    except Exception as e:
+        print(f"ENS comparison table failed [{BN[b]}]:", e)
+if not man["ens_compare"]: del man["ens_compare"]
 json.dump(man, open(os.path.join(SITE, "manifest.json"), "w"), separators=(",", ":"))
 shutil.copy(os.path.join(HERE, "index.html"), os.path.join(SITE, "index.html"))
 open(os.path.join(SITE, ".nojekyll"), "w").close()
