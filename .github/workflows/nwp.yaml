@@ -74,6 +74,15 @@ jobs:
           RUN_ID: ${{ github.event.inputs.run_id }}
           KEEP_DAYS: "7"
         run: python ens_district_runner.py
+      - name: Subdivisional Forecast - Tmax / Tmin (7 global models; rainfall comes from the district files)
+        continue-on-error: true
+        timeout-minutes: 45
+        env:
+          TMODELS: "IFS,AIFS,GFS,AIGFS,ICON,GDPS,ARPEGE"
+          FORCE:  ${{ github.event.inputs.force }}
+          RUN_ID: ${{ github.event.inputs.run_id }}
+          KEEP_DAYS: "7"
+        run: python subdiv_temp_runner.py
       - name: Verification archive (branch verif-archive, kept for ever)
         continue-on-error: true
         run: |
