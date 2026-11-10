@@ -82,7 +82,7 @@ India Meteorological Department (NWP Division SFTP server; IMD Pune gridded rain
 
 ## How it was built
 
-All code was written by a generative AI assistant (Claude, Anthropic) from requirements set, tested and validated meteorologically by the forecaster, who wrote no code directly. The development process and an evaluation of the system are described in:
+All code was written by a generative AI assistant (Claude, Anthropic) from requirements set, tested and validated meteorologically by the forecaster. The development process and an evaluation of the system are described in:
 
 > Mishra, K., Kumar, V. *Building zero-cost operational weather decision support with a generative AI coding assistant: an Indian case study.* Manuscript in preparation.
 
