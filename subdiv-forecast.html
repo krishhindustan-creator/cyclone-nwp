@@ -7,8 +7,8 @@
 <style>
   :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
   *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  .wrap{max-width:1180px;margin:0 auto;padding:14px}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1700px;margin:0 auto;padding:16px}
   h1{font-size:1.25rem;margin:0 0 8px}
   body.embedded h1{display:none}
   .vtabs{display:flex;gap:0;margin:0 0 10px;border-bottom:2px solid var(--accent);overflow-x:auto}
@@ -28,28 +28,29 @@
   button:focus-visible,select:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
   .win{font-weight:600;margin:0 0 10px;font-size:.9rem}
   .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-  @media (min-width:1000px){.grid{grid-template-columns:minmax(0,430px) minmax(0,1fr)}}
+  @media (min-width:1000px){.grid{grid-template-columns:minmax(0,46%) minmax(0,1fr);gap:18px}}
+  @media (min-width:1500px){.grid{grid-template-columns:minmax(0,600px) minmax(0,1fr)}}
   .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;align-self:start}
   canvas{display:block;width:100%;height:auto}
-  .maptitle{font-weight:600;font-size:.85rem;margin:0 0 4px}
+  .maptitle{font-weight:600;font-size:.95rem;margin:0 0 6px}
   #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.88);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
   #status.hide{display:none}
-  .tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:78vh}
-  table.t{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:100%}
-  .t th,.t td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 7px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:88vh}
+  table.t{border-collapse:separate;border-spacing:0;font-size:.98rem;min-width:100%}
+  .t th,.t td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:7px 12px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
   .t thead th{position:sticky;top:0;background:#14202b;color:#fff;z-index:2;font-weight:600;line-height:1.2}
-  .t thead th small{display:block;font-weight:400;opacity:.75;font-size:.7rem}
-  .t th.sd,.t td.sd{position:sticky;left:0;text-align:left;background:var(--panel);z-index:1;font-weight:600;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+  .t thead th small{display:block;font-weight:400;opacity:.75;font-size:.78rem}
+  .t th.sd,.t td.sd{position:sticky;left:0;text-align:left;background:var(--panel);z-index:1;font-weight:600;max-width:300px;overflow:hidden;text-overflow:ellipsis}
   .t thead th.sd{z-index:3;background:#14202b}
   .t td.mme{font-weight:800;border-right:2px solid #14202b}
   .t th.mme{border-right:2px solid #14202b;background:#0b5cad}
   .t td.na{color:#9aa6b2;background:#f7f8fa}
-  .t tr.reg td{background:#e8eef4;font-weight:700;text-align:left;position:static;font-size:.78rem;color:var(--mute)}
+  .t tr.reg td{background:#e8eef4;font-weight:700;text-align:left;position:static;font-size:.9rem;color:var(--mute)}
   .t tbody tr:hover td{outline:1px solid #14202b55;outline-offset:-1px}
   .t tbody tr.hl td.sd{background:#fff3c4}
   .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 4px}
-  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
-  .legend i{width:18px;height:12px;border:1px solid #0003;display:inline-block}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.92rem}
+  .legend i{width:22px;height:14px;border:1px solid #0003;display:inline-block}
   .tools{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
   .tools button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem}
   .note{color:var(--mute);font-size:.78rem;margin-top:10px;max-width:80ch}
@@ -59,7 +60,7 @@
   #tip tr.m td{border-top:1px solid #fff5;padding-top:4px;font-weight:700}
   [hidden]{display:none!important}
   .sh{display:none}@media (max-width:700px){.lg{display:none}.sh{display:inline}}
-  @media (max-width:700px){.wrap{padding:8px}.vtabs button{padding:7px 11px;font-size:.88rem}.icsub{font-size:.78rem}.t{font-size:.78rem}.tblwrap{max-height:none}}
+  @media (max-width:700px){.wrap{padding:8px}.vtabs button{padding:7px 11px;font-size:.88rem}.icsub{font-size:.78rem}.t{font-size:.84rem}.t th,.t td{padding:5px 8px}.tblwrap{max-height:none}}
 </style>
 </head>
 <body>
@@ -167,7 +168,7 @@ function draw(){
     for(const ln of SDL.lines) ln.forEach(([x,y],i)=>{const [X,Y]=px(x,y); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}); ctx.stroke(); ctx.restore();
     // MME value at each subdivision's label point
     if(mme){ ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
-      ctx.font='700 '+(view.W<420?9:11)+'px system-ui,sans-serif';
+      ctx.font='700 '+Math.max(9,Math.min(15,Math.round(view.W/52)))+'px system-ui,sans-serif';
       for(const lb of SDL.labels){ const i=SDN.indexOf(lb.n); if(i<0||mme[i]==null||(varK==='rain'&&mme[i]<0.05)) continue; const [x,y]=px(lb.lon,lb.lat);
         const s=fmtV(mme[i]); ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.fillStyle='#000'; ctx.strokeText(s,x,y); ctx.fillText(s,x,y); }
       ctx.restore(); }
