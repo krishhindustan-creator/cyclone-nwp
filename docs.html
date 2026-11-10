@@ -46,10 +46,11 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
   <li><a href="#conventions">Times, runs and categories</a></li>
   <li><a href="#tphi">T-phi grams (IMD RS/RW data)</a></li>
   <li><a href="#mme">IMD MME: cyclone tracks of 7 models</a></li>
-  <li><a href="#ens">ECMWF ensemble cyclone tracks</a></li>
+  <li><a href="#ens">ECMWF ensemble cyclone tracks</a> (both with an Arabian Sea / Bay of Bengal selector)</li>
   <li><a href="#adeck">A-Deck: JTWC model tracks</a></li>
   <li><a href="#district">MME District Rainfall Forecast</a></li>
   <li><a href="#ensdist">Ensemble District R/F Probability</a></li>
+  <li><a href="#subdiv">Subdivisional Forecast: rainfall, Tmax, Tmin</a></li>
   <li><a href="#verif">Verification</a></li>
   <li><a href="#schedule">Update times and archives</a></li>
   <li><a href="#sources">Data sources and acknowledgements</a></li>
@@ -60,11 +61,12 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <div class="tbl"><table>
 <tr><th>Tab</th><th>What it gives</th><th>Link</th></tr>
 <tr><td>T-phi grams</td><td>T-phi gram and 39 thermodynamic indices for every IMD RS/RW station that reported</td><td><a href="https://krishhindustan-creator.github.io/rsrw-tphigrams" target="_top">rsrw-tphigrams</a></td></tr>
-<tr><td>ECMWF ENS</td><td>Cyclone tracks of the 51-member ECMWF ensemble: spaghetti, strike probability, MSW and MSLP plumes, landfall summary, run comparison</td><td><a href="index.html#ens" target="_top">#ens</a></td></tr>
-<tr><td>IMD MME</td><td>Cyclone track, MSW and MSLP of seven models and their mean (MME), MME table and landfall table</td><td><a href="index.html#mme" target="_top">#mme</a></td></tr>
+<tr><td>ECMWF ENS</td><td>Cyclone tracks of the 51-member ECMWF ensemble: spaghetti, strike probability, MSW and MSLP plumes, landfall summary, run comparison. Basin selector: Arabian Sea or Bay of Bengal</td><td><a href="index.html#ens" target="_top">#ens</a></td></tr>
+<tr><td>IMD MME</td><td>Cyclone track, MSW and MSLP of seven models and their mean (MME), MME table and landfall table. Basin selector: Arabian Sea or Bay of Bengal</td><td><a href="index.html#mme" target="_top">#mme</a></td></tr>
 <tr><td>A-Deck</td><td>Model tracks collected by JTWC for a numbered system</td><td><a href="index.html#adeck" target="_top">#adeck</a></td></tr>
 <tr><td>MME District Rainfall Forecast</td><td>24-h rainfall for 742 districts, Day 1–10, from ten models: each model, MME mean and median, share of models per IMD category</td><td><a href="index.html#district" target="_top">#district</a></td></tr>
 <tr><td>Ensemble District R/F Probability</td><td>Chance of each IMD rainfall category per district from 102 ensemble members (ECMWF ENS, GEFS, GEPS)</td><td><a href="index.html#ensdist" target="_top">#ensdist</a></td></tr>
+<tr><td>Subdivisional Forecast</td><td>For the 36 IMD subdivisions: 24-h rainfall (Day 1–10, ten models), maximum and minimum temperature (seven models), each model and the MME, as a map and a table</td><td><a href="index.html#subdiv" target="_top">#subdiv</a></td></tr>
 <tr><td>Verification</td><td>Yesterday's district forecasts against IMD gridded rainfall: hit/miss maps and POD, FAR, CSI, bias</td><td><a href="index.html#verif" target="_top">#verif</a></td></tr>
 </table></div>
 <p>All pages are produced automatically on a free cloud computer (GitHub Actions) and published on GitHub Pages. No office computer is involved; nothing needs to be installed to view them, on phone or desktop.</p>
@@ -128,7 +130,17 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
   <li>A centre is accepted only if it is at least 1 hPa deeper than the mean MSLP in a 300–500 km ring (2.5 hPa over land); tracking stops after a jump of more than 300 km in 6 h, or when a decaying low over land becomes too weak.</li>
   <li>MSW = highest 10 m wind within 300 km of the centre; central pressure = lowest MSLP within 75 km.</li>
   <li>Landfall = first ocean-to-land crossing of the track, found on the coastline by bisection and interpolated in time; the nearest coastal place is named.</li>
-  <li>The basin (Bay of Bengal or Arabian Sea) and the starting position come automatically from ECMWF's tracker.</li>
+  <li>The starting position of the system in each basin comes from ECMWF's tracker for that basin.</li>
+</ul>
+<h3 id="basins">Two basins: the basin selector</h3>
+<ul>
+  <li>At every update, the IMD MME and the ECMWF ensemble are run <b>separately for the Arabian Sea and for the Bay of Bengal</b>, so a system in each basin gets its own tracks, plumes and tables, even when both basins are active at the same time.</li>
+  <li>On the <b>IMD MME</b> and <b>ECMWF ENS</b> tabs, the drop-down next to the run chooses the basin. Each option shows how many maps that basin has in the selected run, e.g. “Bay of Bengal · 7 maps”, so an active basin is easy to spot.</li>
+  <li>When a basin has no system in a run, it shows a single “no system” card (“No system tracked over this basin in this run”), not an error. The basin is checked again at every update, and the maps replace the card as soon as a system appears.</li>
+  <li>The page opens on the Arabian Sea; the basin you choose is kept while you move between runs and tabs, until the browser tab is closed.</li>
+  <li>Download links are labelled with the basin, and the ECMWF run-comparison table is made for each basin separately.</li>
+  <li>The IMD model files (IMD GFS, NCUM-G, NCUM-R) are downloaded once per run and used for both basins.</li>
+  <li>The <b>A-Deck</b> tab has no selector: the a-deck of each numbered system is shown with its basin in the title.</li>
 </ul>
 <h3>MME</h3>
 <ul>
@@ -147,7 +159,8 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
   <li>For each member, the track of the system is the basin track passing closest to the reference position (within 4°) during the first 72 h.</li>
   <li>Ensemble mean track, MSW and MSLP: mean of the members tracking the system at each time, shown where at least 10 members remain. Plumes show the 10–90 percentile band.</li>
   <li><b>Strike probability</b>: share of the 51 tracks whose centre passes within 120 km of a point at any time in the forecast (tracks interpolated hourly).</li>
-  <li><b>Run comparison</b>: the last six runs side by side (peak, landfall time and place, members making landfall), also saved as a PNG.</li>
+  <li><b>Run comparison</b>: the last six runs of the selected basin side by side (peak, landfall time and place, members making landfall), also saved as a PNG for each basin.</li>
+  <li>Run separately for the Arabian Sea and the Bay of Bengal; choose the basin with the drop-down (see <a href="#basins">the basin selector</a>).</li>
   <li>New runs appear at about 13:30 IST (00 UTC run) and 01:30 IST (12 UTC run). Last 15 days kept.</li>
 </ul>
 </section>
@@ -157,6 +170,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <ul>
   <li>Source: the open a-deck files of the UCAR RAL Tropical Cyclone Guidance Project. An a-deck exists only after JTWC numbers the system (e.g. 02B, file <code>aio02YYYY.dat</code>).</li>
   <li>Plotted: NAVGEM (NGX), UKMO (UKM), CMC, and the GEFS (AEMN), Canadian (CEMN) and Navy (NEMN) ensemble means, each with its own centre's tracker.</li>
+  <li>Made from each basin's MME run, so systems in both basins appear, each titled with its basin.</li>
   <li>Run used: the latest a-deck run with at least three deterministic models. NAVGEM from here is also an MME member; the others are for comparison only.</li>
   <li>Updated with every MME update; last 15 days kept; track files downloadable.</li>
 </ul>
@@ -215,7 +229,39 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 </section>
 
 <!-- ======================================================= -->
-<section id="verif"><h2>9. Verification <a class="top" href="#top">↑ top</a></h2>
+<section id="subdiv"><h2>9. Subdivisional Forecast: rainfall, Tmax, Tmin <a class="top" href="#top">↑ top</a></h2>
+<p>Three tabs, <b>Rainfall</b>, <b>Maximum Temperature</b> and <b>Minimum Temperature</b>, for the 36 IMD meteorological subdivisions. Each tab has a map coloured by the MME and a table of all subdivisions with the MME and every model. Hover over or tap a subdivision on the map to see each model's value; the table can be downloaded as CSV and the map as PNG. Direct links: <a href="index.html#sub-rain" target="_top">#sub-rain</a>, <a href="index.html#sub-tmax" target="_top">#sub-tmax</a>, <a href="index.html#sub-tmin" target="_top">#sub-tmin</a>.</p>
+<h3>Subdivision value</h3>
+<ul>
+  <li>The grid points of a subdivision are those of its districts (as in section 7: points inside each district plus the one nearest its centre). Subdivision of each district as in IMD's map.</li>
+  <li><b>Rainfall</b>: the <b>highest</b> 24-h rainfall at any grid point in the subdivision, for each model and Day 1–10. It is taken from the same district values as the MME District Rainfall tab (the highest of the subdivision's districts), so the ten models and the day windows are the same.</li>
+  <li><b>Maximum temperature</b> of a date: the <b>highest</b> 2-m temperature at any grid point in the subdivision during 00–12 UTC (05:30–17:30 IST).</li>
+  <li><b>Minimum temperature</b> of a date: the <b>lowest</b> 2-m temperature at any grid point in the subdivision from 12 UTC of the previous day to 03 UTC (17:30–08:30 IST), IMD's minimum-temperature period.</li>
+  <li><b>MME</b>: simple mean of these model values, equal weight, using the models that reach the day.</li>
+  <li>Temperature dates: a 00 UTC run gives Tmax from the IC date and Tmin from the next date; a 12 UTC run gives both from the next date. Values are raw model output in °C; no bias or height correction.</li>
+</ul>
+<h3>Models for temperature</h3>
+<div class="tbl"><table>
+<tr><th>Model</th><th>Grid</th><th>Temperature field used</th><th>Reaches</th></tr>
+<tr><td>ECMWF IFS</td><td>0.25°</td><td>3-hourly max/min 2-m temperature to +144 h, 6-hourly after</td><td>+240 h</td></tr>
+<tr><td>ECMWF AIFS (AI model)</td><td>0.25°</td><td>2-m temperature every 6 h</td><td>+240 h</td></tr>
+<tr><td>NCEP GFS</td><td>0.25°</td><td>TMAX / TMIN, 3-hourly to +120 h, 6-hourly after</td><td>+240 h</td></tr>
+<tr><td>NOAA AIGFS (AI model)</td><td>0.25°</td><td>2-m temperature every 6 h</td><td>+240 h</td></tr>
+<tr><td>DWD ICON</td><td>~13 km</td><td>6-hourly TMAX_2M / TMIN_2M</td><td>+180 h</td></tr>
+<tr><td>CMC GDPS</td><td>0.15°</td><td>2-m temperature every 3 h</td><td>+240 h</td></tr>
+<tr><td>Météo-France ARPEGE</td><td>0.25°</td><td>2-m temperature every hour</td><td>+102 h</td></tr>
+</table></div>
+<ul>
+  <li>IMD GFS, NCUM-G and NCUM-R are in the Rainfall tab only: IMD's server folder for this site holds their rainfall files, not temperature.</li>
+  <li>IFS, GFS and ICON give the true maximum and minimum. The others give temperature at fixed hours, so their maximum can be 1–2 °C low (most for AIFS and AIGFS, every 6 h).</li>
+  <li><b>Hill subdivisions</b>: the lowest value comes from the highest grid points, so the minimum for Jammu &amp; Kashmir–Ladakh, Himachal Pradesh, Uttarakhand, Arunachal Pradesh and Sub-Himalayan West Bengal &amp; Sikkim is far below the station minima (often −15 to −30 °C). Use these subdivisions' Tmin for trends between days and models, not as station values.</li>
+</ul>
+<h3>Updates and archive</h3>
+<p>Temperature is checked every 30 minutes with the district rainfall; each model is added as soon as its run is out. Rainfall follows the district rainfall files. Last 7 days (14 runs) kept.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="verif"><h2>10. Verification <a class="top" href="#top">↑ top</a></h2>
 <h3>Observed rainfall: two sources</h3>
 <ul>
   <li><b>IMD Gridded:</b> IMD real-time gridded daily rainfall at 0.25° (IMD Pune), downloaded openly each day; provisional, so the last three days are re-fetched as IMD revises them. The district value is the <b>maximum</b> or the <b>average</b> of the grid points inside the district.</li>
@@ -251,25 +297,26 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 </section>
 
 <!-- ======================================================= -->
-<section id="schedule"><h2>10. Update times and archives <a class="top" href="#top">↑ top</a></h2>
+<section id="schedule"><h2>11. Update times and archives <a class="top" href="#top">↑ top</a></h2>
 <div class="tbl"><table>
 <tr><th>Product</th><th>Updated (IST)</th><th>Archive</th></tr>
 <tr><td>T-phi grams</td><td>07:30 · 09:00 · 19:30 · 21:00</td><td>Rolling, all ascents</td></tr>
-<tr><td>IMD MME and A-Deck</td><td>10:30 · 13:30 · 14:30 · 22:30 · 01:30 · 02:30</td><td>15 days</td></tr>
-<tr><td>ECMWF ENS cyclone tracks</td><td>~13:30 (00 UTC run) · ~01:30 (12 UTC run)</td><td>15 days</td></tr>
+<tr><td>IMD MME and A-Deck (both basins)</td><td>10:30 · 13:30 · 14:30 · 22:30 · 01:30 · 02:30</td><td>15 days</td></tr>
+<tr><td>ECMWF ENS cyclone tracks (both basins)</td><td>~13:30 (00 UTC run) · ~01:30 (12 UTC run)</td><td>15 days</td></tr>
 <tr><td>MME District Rainfall</td><td>Every 30 min, 08:40–16:10 and 20:40–04:10, as models arrive</td><td>7 days (14 runs)</td></tr>
 <tr><td>Ensemble District R/F Probability</td><td>Every 30 min, as ensembles arrive</td><td>7 days (14 runs)</td></tr>
+<tr><td>Subdivisional Forecast</td><td>Every 30 min, as models arrive (rainfall with the district rainfall)</td><td>7 days (14 runs)</td></tr>
 <tr><td>Verification</td><td>With each update; yesterday's rainfall usually by the next morning</td><td>10 observed days</td></tr>
 </table></div>
 <p class="note">Pages refresh themselves every few minutes while open. If a page looks out of date on a phone, close the tab and open the link again.</p>
 </section>
 
 <!-- ======================================================= -->
-<section id="sources"><h2>11. Data sources and acknowledgements <a class="top" href="#top">↑ top</a></h2>
+<section id="sources"><h2>12. Data sources and acknowledgements <a class="top" href="#top">↑ top</a></h2>
 <ul>
   <li><b>IMD</b>: CLIMS RS/RW data; NWP Division SFTP server (IMD GFS, NCUM-G and NCUM-R fields and rainfall, cut to the region); IMD Pune real-time gridded rainfall; iRAINS District Rainfall Monitoring Scheme API (gauge-based district rainfall).</li>
-  <li><b>ECMWF</b> open data (CC BY 4.0): IFS, AIFS, ENS rainfall and tropical-cyclone tracks.</li>
-  <li><b>NOAA/NCEP</b>: GFS, AIGFS and GEFS (NOAA Open Data Dissemination on AWS; NOMADS).</li>
+  <li><b>ECMWF</b> open data (CC BY 4.0): IFS, AIFS, ENS rainfall, IFS and AIFS 2-m temperature, and tropical-cyclone tracks.</li>
+  <li><b>NOAA/NCEP</b>: GFS, AIGFS and GEFS rainfall; GFS and AIGFS 2-m temperature (NOAA Open Data Dissemination on AWS; NOMADS).</li>
   <li><b>Environment and Climate Change Canada</b>: GDPS and GEPS (MSC Datamart, open data licence).</li>
   <li><b>DWD</b> (ICON) and <b>Météo-France</b> (ARPEGE) open data.</li>
   <li><b>JTWC / UCAR RAL</b>: open a-deck model tracks.</li>
