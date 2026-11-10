@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Subdivisional Forecast</title>
+<style>
+  :root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad}
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto;padding:14px}
+  h1{font-size:1.25rem;margin:0 0 8px}
+  body.embedded h1{display:none}
+  .vtabs{display:flex;gap:0;margin:0 0 10px;border-bottom:2px solid var(--accent);overflow-x:auto}
+  .vtabs button{flex:0 0 auto;border:1px solid var(--line);border-bottom:0;background:var(--panel);color:var(--ink);font:inherit;font-weight:600;
+    padding:8px 16px;border-radius:8px 8px 0 0;cursor:pointer;margin-right:4px}
+  .vtabs button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .icbar{background:var(--accent);color:#fff;border-radius:8px;padding:10px 14px;margin:0 0 10px}
+  .ic{font-size:1.15rem;font-weight:700}
+  .icsub{font-size:.84rem;opacity:.93;margin-top:2px}
+  .runbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 10px;font-size:.9rem}
+  .runbar select{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);max-width:100%}
+  .days{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+  .days button{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 10px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem;text-align:center}
+  .days button small{display:block;color:var(--mute);font-size:.72rem}
+  .days button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+  .days button[aria-pressed="true"] small{color:#d7e6f7}
+  button:focus-visible,select:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
+  .win{font-weight:600;margin:0 0 10px;font-size:.9rem}
+  .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+  @media (min-width:1000px){.grid{grid-template-columns:minmax(0,430px) minmax(0,1fr)}}
+  .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;align-self:start}
+  canvas{display:block;width:100%;height:auto}
+  .maptitle{font-weight:600;font-size:.85rem;margin:0 0 4px}
+  #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.88);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
+  #status.hide{display:none}
+  .tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:78vh}
+  table.t{border-collapse:separate;border-spacing:0;font-size:.82rem;min-width:100%}
+  .t th,.t td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 7px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
+  .t thead th{position:sticky;top:0;background:#14202b;color:#fff;z-index:2;font-weight:600;line-height:1.2}
+  .t thead th small{display:block;font-weight:400;opacity:.75;font-size:.7rem}
+  .t th.sd,.t td.sd{position:sticky;left:0;text-align:left;background:var(--panel);z-index:1;font-weight:600;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+  .t thead th.sd{z-index:3;background:#14202b}
+  .t td.mme{font-weight:800;border-right:2px solid #14202b}
+  .t th.mme{border-right:2px solid #14202b;background:#0b5cad}
+  .t td.na{color:#9aa6b2;background:#f7f8fa}
+  .t tr.reg td{background:#e8eef4;font-weight:700;text-align:left;position:static;font-size:.78rem;color:var(--mute)}
+  .t tbody tr:hover td{outline:1px solid #14202b55;outline-offset:-1px}
+  .t tbody tr.hl td.sd{background:#fff3c4}
+  .legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin:10px 0 4px}
+  .legend span{display:inline-flex;align-items:center;gap:6px;font-size:.8rem}
+  .legend i{width:18px;height:12px;border:1px solid #0003;display:inline-block}
+  .tools{margin-top:8px;display:flex;gap:8px;flex-wrap:wrap}
+  .tools button{border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;border-radius:6px;cursor:pointer;font:inherit;font-size:.85rem}
+  .note{color:var(--mute);font-size:.78rem;margin-top:10px;max-width:80ch}
+  #tip{position:fixed;pointer-events:none;background:#14202b;color:#fff;padding:7px 10px;border-radius:6px;font-size:.82rem;line-height:1.3;display:none;z-index:5;max-width:280px}
+  #tip table{border-collapse:collapse;margin-top:5px;width:100%}
+  #tip td{padding:1px 0;white-space:nowrap}#tip td.v{text-align:right;padding-left:14px;font-variant-numeric:tabular-nums}
+  #tip tr.m td{border-top:1px solid #fff5;padding-top:4px;font-weight:700}
+  [hidden]{display:none!important}
+  .sh{display:none}@media (max-width:700px){.lg{display:none}.sh{display:inline}}
+  @media (max-width:700px){.wrap{padding:8px}.vtabs button{padding:7px 11px;font-size:.88rem}.icsub{font-size:.78rem}.t{font-size:.78rem}.tblwrap{max-height:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Subdivisional Forecast</h1>
+  <nav class="vtabs" role="group" aria-label="Forecast element">
+    <button id="v_rain" aria-pressed="true">Rainfall</button>
+    <button id="v_tmax" aria-pressed="false"><span class="lg">Maximum</span><span class="sh">Max</span> Temperature</button>
+    <button id="v_tmin" aria-pressed="false"><span class="lg">Minimum</span><span class="sh">Min</span> Temperature</button>
+  </nav>
+  <div class="icbar"><div class="ic" id="ictxt">Loading…</div><div class="icsub" id="icsub"></div></div>
+  <div class="runbar"><label for="runsel">Run (IC):</label><select id="runsel"></select><span class="note" id="upd" style="margin:0"></span></div>
+  <div class="days" id="days" role="group" aria-label="Forecast day"></div>
+  <p class="win" id="win"></p>
+  <div class="grid">
+    <div class="stage">
+      <p class="maptitle" id="maptitle"></p>
+      <canvas id="map" aria-label="Subdivision map of the multi-model mean"></canvas>
+      <div id="status">Loading…</div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <div>
+      <div class="tblwrap"><table class="t" id="tbl"></table></div>
+      <div class="tools"><button id="csv">Download table (CSV)</button><button id="png">Save map as PNG</button></div>
+    </div>
+  </div>
+  <p class="note" id="fn"></p>
+</div>
+<div id="tip"></div>
+<script>
+/* ---------- Configuration ---------- */
+const MODELS = {
+  IFS:{name:'ECMWF IFS'}, AIFS:{name:'ECMWF AIFS'}, GFS:{name:'NCEP GFS'}, AIGFS:{name:'NOAA AIGFS'},
+  ICON:{name:'DWD ICON'}, GDPS:{name:'CMC GDPS'}, ARPEGE:{name:'ARPEGE'}, IMDGFS:{name:'IMD GFS'}, NCUMG:{name:'NCUM-G'}, NCUMR:{name:'NCUM-R'}
+};
+const REGIONS = {1:'Central & West India',2:'East & Northeast India',3:'Northwest India',4:'South Peninsula & islands'};
+const RAIN_BINS = [
+  {min:0,label:'No rain',color:'#eef1f4'},{min:0.1,label:'Very light (0.1–2.4)',color:'#d6efe3'},
+  {min:2.5,label:'Light (2.5–15.5)',color:'#86d1a4'},{min:15.6,label:'Moderate (15.6–64.4)',color:'#3db1d9'},
+  {min:64.5,label:'Heavy (64.5–115.5)',color:'#2f6fd0'},{min:115.6,label:'Very heavy (115.6–204.4)',color:'#7a3fc0'},
+  {min:204.5,label:'Extremely heavy (≥204.5)',color:'#c2185b'}];
+const TMAX_BINS = [
+  {min:-99,label:'< 10',color:'#4575b4'},{min:10,label:'10–15',color:'#74add1'},{min:15,label:'15–20',color:'#abd9e9'},
+  {min:20,label:'20–25',color:'#e0f3f8'},{min:25,label:'25–30',color:'#ffffbf'},{min:30,label:'30–35',color:'#fee090'},
+  {min:35,label:'35–40',color:'#fdae61'},{min:40,label:'40–45',color:'#f46d43'},{min:45,label:'≥ 45',color:'#a50026'}];
+const TMIN_BINS = [
+  {min:-99,label:'< −10',color:'#313695'},{min:-10,label:'−10–0',color:'#4575b4'},{min:0,label:'0–5',color:'#74add1'},
+  {min:5,label:'5–10',color:'#abd9e9'},{min:10,label:'10–15',color:'#e0f3f8'},{min:15,label:'15–20',color:'#ffffbf'},
+  {min:20,label:'20–25',color:'#fee090'},{min:25,label:'25–30',color:'#fdae61'},{min:30,label:'≥ 30',color:'#d73027'}];
+const V = {
+  rain:{t:'Rainfall', unit:'mm', bins:RAIN_BINS, agg:'highest', icsub:'24-hour rainfall: each model’s highest grid-point value in the subdivision, and their mean (MME)'},
+  tmax:{t:'Maximum Temperature', unit:'°C', bins:TMAX_BINS, agg:'highest', icsub:'Each model’s highest maximum temperature anywhere in the subdivision (00–12 UTC), and their mean (MME)'},
+  tmin:{t:'Minimum Temperature', unit:'°C', bins:TMIN_BINS, agg:'lowest', icsub:'Each model’s lowest minimum temperature anywhere in the subdivision (12 UTC previous day – 03 UTC), and their mean (MME)'}
+};
+const binOf=(v,bins)=>{let b=bins[0];for(const x of bins) if(v>=x.min) b=x;return b;};
+const textOn=c=>{const n=parseInt(c.slice(1),16),r=n>>16,g=n>>8&255,b=n&255;return (r*299+g*587+b*114)/1000<140?'#fff':'#14202b';};
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], p2=n=>String(n).padStart(2,'0');
+const fmtZ=t=>p2(t.getUTCHours())+' UTC '+p2(t.getUTCDate())+' '+MON[t.getUTCMonth()];
+const fmtD=s=>{const t=new Date(s+'T00:00Z');return p2(t.getUTCDate())+' '+MON[t.getUTCMonth()];};
+const WK=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+/* ---------- State ---------- */
+const g=id=>document.getElementById(id);
+const cv=g('map'), ctx=cv.getContext('2d'), tip=g('tip');
+let feats=[], SDL=null, SDN=[], SDC=[], sdOfFeat=[];   // subdivisions in code order; feature -> subdivision index
+let MAN={rain:null,temp:null}, cache={}, varK=(location.hash.slice(1)||'').replace('sub-','')||'rain';
+if(!V[varK]) varK='rain';
+let runIC=null, dayIdx=0, cur=null, view=null, hoverSD=-1;
+
+/* ---------- Geometry and map ---------- */
+function prepare(G){
+  const idx={};
+  for(const f of G.features){
+    const p=f.properties||{}, geom=f.geometry; if(!geom) continue;
+    const polys=geom.type==='Polygon'?[geom.coordinates]:geom.coordinates;
+    const sd=p.subdivision||p.sd||'', code=p.subdivision_code;
+    if(!(sd in idx)){idx[sd]=SDN.length;SDN.push(sd);SDC.push(code);}
+    feats.push({polys,sd:idx[sd]});
+  }
+  // order subdivisions by IMD code
+  const ord=SDN.map((n,i)=>i).sort((a,b)=>(SDC[a]||999)-(SDC[b]||999)), remap={};
+  ord.forEach((o,i)=>remap[o]=i); SDN=ord.map(i=>SDN[i]); SDC=ord.map(i=>SDC[i]);
+  feats.forEach(f=>f.sd=remap[f.sd]);
+}
+function layout(){
+  let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+  for(const f of feats) for(const poly of f.polys) for(const [x,y] of poly[0]){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
+  const k=Math.cos(22*Math.PI/180), W=cv.clientWidth||400, H=W*(y1-y0)/((x1-x0)*k), dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr; cv.height=H*dpr; cv.style.height=H+'px';
+  view={x0,y1,s:W/((x1-x0)*k),k,W,H,dpr};
+  for(const f of feats){ const P=new Path2D();
+    for(const poly of f.polys) for(const r of poly){ r.forEach(([x,y],i)=>{const [X,Y]=px(x,y); i?P.lineTo(X,Y):P.moveTo(X,Y);}); P.closePath(); }
+    f.path=P; }
+}
+const px=(x,y)=>[(x-view.x0)*view.k*view.s,(view.y1-y)*view.s];
+function draw(){
+  if(!view) return;
+  ctx.setTransform(view.dpr,0,0,view.dpr,0,0); ctx.clearRect(0,0,view.W,view.H);
+  const mme=cur?cur.mme:null, bins=V[varK].bins;
+  for(const f of feats){ const v=mme?mme[f.sd]:null;
+    ctx.fillStyle=v==null?'#e3e7eb':binOf(v,bins).color; ctx.fill(f.path,'evenodd'); }
+  ctx.lineWidth=.35; ctx.strokeStyle='rgba(20,32,43,.18)'; for(const f of feats) ctx.stroke(f.path);
+  if(hoverSD>=0){ ctx.save(); ctx.fillStyle='rgba(255,255,255,.35)'; for(const f of feats) if(f.sd===hoverSD) ctx.fill(f.path,'evenodd'); ctx.restore(); }
+  if(SDL){ ctx.save(); ctx.strokeStyle='#111'; ctx.lineWidth=1.3; ctx.lineJoin='round'; ctx.beginPath();
+    for(const ln of SDL.lines) ln.forEach(([x,y],i)=>{const [X,Y]=px(x,y); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y);}); ctx.stroke(); ctx.restore();
+    // MME value at each subdivision's label point
+    if(mme){ ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.lineJoin='round';
+      ctx.font='700 '+(view.W<420?9:11)+'px system-ui,sans-serif';
+      for(const lb of SDL.labels){ const i=SDN.indexOf(lb.n); if(i<0||mme[i]==null||(varK==='rain'&&mme[i]<0.05)) continue; const [x,y]=px(lb.lon,lb.lat);
+        const s=fmtV(mme[i]); ctx.lineWidth=3; ctx.strokeStyle='rgba(255,255,255,.95)'; ctx.fillStyle='#000'; ctx.strokeText(s,x,y); ctx.fillText(s,x,y); }
+      ctx.restore(); }
+  }
+}
+const fmtV=v=>v==null?'–':(varK==='rain'?(v>=100?v.toFixed(0):v.toFixed(1)):v.toFixed(1));
+
+/* ---------- Data ---------- */
+const tagOf=ic=>ic.replace(/[-T:]/g,'').slice(0,10);
+async function getJSON(u){ const r=await fetch(u+(u.includes('?')?'&':'?')+'t='+Date.now()); if(!r.ok) throw new Error(u+' ('+r.status+')'); return r.json(); }
+async function manifest(kind){
+  if(!MAN[kind]) MAN[kind]=await getJSON(kind==='rain'?'district/manifest.json':'subdiv/manifest.json').catch(()=>({runs:[]}));
+  return MAN[kind];
+}
+async function runFile(kind,ic){
+  const k=kind+tagOf(ic); if(!cache[k]) cache[k]=await getJSON((kind==='rain'?'district/':'subdiv/')+tagOf(ic)+'.json'); return cache[k];
+}
+// -> {cols:[model keys], days:[{label,sub,win}], val(model,sd,day), }
+function buildRain(run){
+  const ic=new Date(run.ic+'Z'), cols=Object.keys(run.models), nD=10, out={};
+  for(const m of cols){ const A=run.models[m], S=SDN.map(()=>Array(nD).fill(null));
+    A.forEach((row,fi)=>{ const sd=feats[fi]?feats[fi].sd:null; if(sd==null) return;
+      for(let d=0;d<nD;d++){ const v=row[d]; if(v==null) continue; if(S[sd][d]==null||v>S[sd][d]) S[sd][d]=v; } });
+    out[m]=S; }
+  const days=[...Array(nD)].map((_,d)=>{ const a=new Date(ic.getTime()+d*864e5), b=new Date(a.getTime()+864e5);
+    return {label:'Day '+(d+1), sub:fmtD(b.toISOString().slice(0,10)), win:'24 hours from '+fmtZ(a)+' to '+fmtZ(b)+' (rainfall total)'}; });
+  return {cols,days,data:out};
+}
+function buildTemp(run,k){
+  const cols=Object.keys(run[k]||{}), map=run.sd.map(n=>SDN.indexOf(n)), out={};
+  for(const m of cols){ const S=SDN.map(()=>Array(run.dates.length).fill(null)); run[k][m].forEach((row,i)=>{ if(map[i]>=0) S[map[i]]=row; }); out[m]=S; }
+  // keep only the dates that at least one model covers
+  const keep=run.dates.map((d,j)=>cols.some(m=>out[m].some(r=>r[j]!=null)));
+  const js=run.dates.map((d,j)=>j).filter(j=>keep[j]);
+  for(const m of cols) out[m]=out[m].map(r=>js.map(j=>r[j]));
+  const days=js.map(j=>{ const d=run.dates[j], t=new Date(d+'T00:00Z'), pv=new Date(t.getTime()-864e5);
+    return {label:WK[t.getUTCDay()]+' '+fmtD(d), sub:'',
+      win: k==='tmax' ? 'Maximum temperature of '+fmtD(d)+': 00–12 UTC (05:30–17:30 IST)'
+                      : 'Minimum temperature of '+fmtD(d)+': 12 UTC '+fmtD(pv.toISOString().slice(0,10))+' – 03 UTC '+fmtD(d)+' (17:30–08:30 IST)'}; });
+  return {cols,days,data:out};
+}
+function computeMME(){
+  const cols=cur.cols, agg=V[varK];
+  cur.mme=SDN.map((_,i)=>{ const vs=cols.map(m=>cur.data[m][i][dayIdx]).filter(v=>v!=null); return vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null; });
+  cur.n=SDN.map((_,i)=>cols.filter(m=>cur.data[m][i][dayIdx]!=null).length);
+}
+
+/* ---------- UI ---------- */
+async function setVar(k){
+  varK=k; ['rain','tmax','tmin'].forEach(x=>g('v_'+x).setAttribute('aria-pressed',x===k));
+  const want='sub-'+k; if(location.hash.slice(1)!==want) history.replaceState(null,'','#'+want);
+  const M=await manifest(k==='rain'?'rain':'temp'), sel=g('runsel');
+  const runs=(M.runs||[]).filter(r=>r.models&&r.models.length);
+  if(!runs.length){ cur=null; sel.innerHTML=''; g('ictxt').textContent=V[k].t+' · no runs yet';
+    g('icsub').textContent='The first run appears after the next scheduled update of the forecast workflow.';
+    g('tbl').innerHTML=''; g('days').innerHTML=''; g('win').textContent=''; g('status').classList.add('hide'); draw(); return; }
+  const keep=runs.some(r=>r.ic===runIC)?runIC:runs[0].ic;
+  sel.innerHTML=runs.map(r=>{const t=new Date(r.ic+'Z');return '<option value="'+r.ic+'">'+fmtZ(t)+' '+t.getUTCFullYear()+' ('+r.models.length+(r.models.length===1?' model':' models')+')</option>';}).join('');
+  sel.value=keep; g('upd').textContent=M.updated?'updated '+M.updated:'';
+  await setRun(keep,true);
+}
+async function setRun(ic,keepDay){
+  runIC=ic; g('status').classList.remove('hide'); g('status').textContent='Loading run…';
+  try{
+    const prevLabel=cur&&cur.days[dayIdx]?cur.days[dayIdx].label:null;
+    const run=await runFile(varK==='rain'?'rain':'temp',ic);
+    cur=varK==='rain'?buildRain(run):buildTemp(run,varK);
+    const j=keepDay&&prevLabel?cur.days.findIndex(d=>d.label===prevLabel):-1;
+    dayIdx=j>=0?j:0;
+    const t=new Date(ic+'Z');
+    g('ictxt').textContent=V[varK].t+' · MME of '+cur.cols.length+(cur.cols.length===1?' model':' models')+' · IC '+fmtZ(t)+' '+t.getUTCFullYear();
+    g('icsub').textContent=V[varK].icsub+'.';
+    g('days').innerHTML=cur.days.map((d,i)=>'<button data-i="'+i+'" aria-pressed="'+(i===dayIdx)+'">'+d.label+(d.sub?'<small>to '+d.sub+'</small>':'')+'</button>').join('');
+    g('status').classList.add('hide'); render();
+  }catch(e){ g('status').textContent='Could not load this run: '+e.message; }
+}
+function render(){
+  computeMME(); const k=V[varK], bins=k.bins, d=cur.days[dayIdx];
+  [...g('days').children].forEach((b,i)=>b.setAttribute('aria-pressed',i===dayIdx));
+  g('win').textContent=d.label+(d.sub?' (to '+d.sub+')':'')+' · '+d.win;
+  g('maptitle').textContent='MME (mean of the models’ '+k.agg+' values), '+k.unit;
+  g('legend').innerHTML=bins.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')+'<span><i style="background:#e3e7eb"></i>No data</span>';
+  let h='<thead><tr><th class="sd">Subdivision</th><th class="mme">MME<small>mean ('+k.unit+')</small></th>'
+       +cur.cols.map(m=>'<th>'+(MODELS[m]?MODELS[m].name:m)+'</th>').join('')+'</tr></thead><tbody>', reg=null;
+  SDN.forEach((n,i)=>{
+    const r=Math.floor((SDC[i]||0)/100); if(r!==reg){ reg=r; h+='<tr class="reg"><td colspan="'+(cur.cols.length+2)+'">'+(REGIONS[r]||'')+'</td></tr>'; }
+    h+='<tr data-sd="'+i+'"'+(i===hoverSD?' class="hl"':'')+'><td class="sd" title="'+n+'">'+n+'</td>'+cell(cur.mme[i],bins,'mme');
+    for(const m of cur.cols){ const v=cur.data[m][i][dayIdx]; h+=cell(v,bins,''); }
+    h+='</tr>';
+  });
+  g('tbl').innerHTML=h+'</tbody>';
+  g('fn').innerHTML=foot(); draw();
+}
+function cell(v,bins,cls){
+  if(v==null) return '<td class="na '+cls+'">–</td>';
+  const c=binOf(v,bins).color; return '<td class="'+cls+'" style="background:'+c+';color:'+textOn(c)+'">'+fmtV(v)+'</td>';
+}
+function foot(){
+  const common='Subdivisions are those of IMD (36); the grid points of a subdivision are those of its districts. MME = simple mean of the models that cover the day (a dash = the model’s run does not reach that day). Not an official IMD product. ';
+  if(varK==='rain') return common+'Rainfall: each model’s value is the highest 24-hour total at any grid point in the subdivision (the same district maxima as the MME District Rainfall tab).';
+  return common+'Temperature: IFS, GFS and ICON give true 3- or 6-hourly maximum/minimum 2-m temperature; ARPEGE (hourly), GDPS (3-hourly), AIFS and AIGFS (6-hourly) give instantaneous 2-m temperature, so their maximum can be slightly low. '
+    +(varK==='tmin'?'The lowest value in hill subdivisions (J&K–Ladakh, Himachal, Uttarakhand, Arunachal, Sikkim) comes from high mountain grid points, far below the station minima.':'The highest value comes from the warmest grid point, usually in the plains or valleys of the subdivision.');
+}
+/* tooltip on the map */
+function sdAt(e){ const r=cv.getBoundingClientRect(), x=(e.clientX-r.left)*view.dpr, y=(e.clientY-r.top)*view.dpr;
+  ctx.setTransform(view.dpr,0,0,view.dpr,0,0); for(const f of feats) if(ctx.isPointInPath(f.path,x,y,'evenodd')) return f.sd; return -1; }
+function showTip(e,i){
+  if(i<0||!cur){ tip.style.display='none'; return; }
+  let h='<b>'+SDN[i]+'</b><table>';
+  for(const m of cur.cols){ const v=cur.data[m][i][dayIdx]; h+='<tr><td>'+(MODELS[m]?MODELS[m].name:m)+'</td><td class="v">'+fmtV(v)+'</td></tr>'; }
+  h+='<tr class="m"><td>MME ('+cur.n[i]+(cur.n[i]===1?' model':' models')+')</td><td class="v">'+fmtV(cur.mme[i])+' '+V[varK].unit+'</td></tr></table>';
+  tip.innerHTML=h; tip.style.display='block';
+  const w=tip.offsetWidth, hh=tip.offsetHeight; let x=e.clientX+14, y=e.clientY+14;
+  if(x+w>innerWidth-6) x=e.clientX-w-14; if(y+hh>innerHeight-6) y=Math.max(6,innerHeight-hh-6);
+  tip.style.left=x+'px'; tip.style.top=y+'px';
+}
+cv.addEventListener('mousemove',e=>{ if(!view) return; const i=sdAt(e); if(i!==hoverSD){ hoverSD=i; draw(); hl(); } showTip(e,i); });
+cv.addEventListener('mouseleave',()=>{ hoverSD=-1; tip.style.display='none'; draw(); hl(); });
+cv.addEventListener('click',e=>{ if(!view) return; const i=sdAt(e); hoverSD=i; draw(); hl(); showTip(e,i);
+  const row=document.querySelector('#tbl tr[data-sd="'+i+'"]'); if(row) row.scrollIntoView({block:'nearest'}); });
+function hl(){ document.querySelectorAll('#tbl tr[data-sd]').forEach(r=>r.classList.toggle('hl',+r.dataset.sd===hoverSD)); }
+g('tbl').addEventListener('mouseover',e=>{ const r=e.target.closest('tr[data-sd]'); const i=r?+r.dataset.sd:-1; if(i!==hoverSD){ hoverSD=i; draw(); hl(); } });
+g('days').onclick=e=>{ const b=e.target.closest('button'); if(b){ dayIdx=+b.dataset.i; render(); } };
+g('runsel').onchange=e=>setRun(e.target.value,true);
+['rain','tmax','tmin'].forEach(k=>g('v_'+k).onclick=()=>setVar(k));
+addEventListener('resize',()=>{ if(feats.length){ layout(); draw(); } });
+g('csv').onclick=()=>{
+  if(!cur) return; const d=cur.days[dayIdx], rows=[['Subdivision',...cur.cols.map(m=>MODELS[m]?MODELS[m].name:m),'MME']];
+  SDN.forEach((n,i)=>rows.push([n,...cur.cols.map(m=>cur.data[m][i][dayIdx]??''),cur.mme[i]==null?'':cur.mme[i].toFixed(1)]));
+  const txt='# '+V[varK].t+' ('+V[varK].unit+'), IC '+fmtZ(new Date(runIC+'Z'))+', '+d.label+(d.sub?' to '+d.sub:'')+'\n'+rows.map(r=>r.map(x=>/[,"]/.test(String(x))?'"'+String(x).replace(/"/g,'""')+'"':x).join(',')).join('\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([txt],{type:'text/csv'}));
+  a.download='subdivision_'+varK+'_'+tagOf(runIC)+'_'+d.label.replace(/\s+/g,'')+'.csv'; a.click();
+};
+g('png').onclick=()=>{ const a=document.createElement('a'); a.href=cv.toDataURL('image/png'); a.download='subdivision_'+varK+'_'+tagOf(runIC||'')+'.png'; a.click(); };
+
+/* embedded in the hub page: fit the frame on phones (as the district page does) */
+let embedded=false; try{ embedded=!!window.frameElement; }catch(e){}
+if(embedded) document.body.classList.add('embedded');
+function fitFrame(){ if(!embedded) return; const f=window.frameElement;
+  if(innerWidth>700){ if(f.dataset.fit){ f.style.height=f.dataset.h0; f.style.minHeight=f.dataset.m0; delete f.dataset.fit; } return; }
+  if(!f.dataset.fit){ f.dataset.fit='1'; f.dataset.h0=f.style.height; f.dataset.m0=f.style.minHeight; }
+  const h=document.documentElement.scrollHeight; if(!(Math.abs(parseFloat(f.style.height)-h)<=2)){ f.style.minHeight='0'; f.style.height=h+'px'; } }
+if(embedded&&window.ResizeObserver) new ResizeObserver(fitFrame).observe(document.body);
+
+/* ---------- Boot ---------- */
+(async function(){
+  try{
+    const [G,S]=await Promise.all([getJSON('india_districts.geojson'),getJSON('imd_subdivisions.json').catch(()=>null)]);
+    prepare(G); SDL=S; layout(); await setVar(varK);
+  }catch(e){ g('status').classList.remove('hide'); g('status').textContent=e.message; }
+})();
+</script>
+</body>
+</html>
