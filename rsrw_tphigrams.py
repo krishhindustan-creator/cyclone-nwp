@@ -419,7 +419,7 @@ def make_chart(S, station, idx, when, out):
     ("Maximum Inversion Gradient\n(°C/km)",GMAX),("Boundary Layer Height (m)",BLH+Z[0]),("Boundary Layer Height AGL (m)",BLH),
     ("Mean Boundary Layer Wind Speed\n(m/s)",BLW),("Ventilation Coefficient (m²/s)",VC),("Boundary Layer Mixing Ratio\n(g/kg)",BLQ),
     ("Bulk Shear (0 to 6 km, m/s)",SH06),("Bulk Richardson Number",BRN),("Vorticity Generation Parameter",VGP),
-    ("Storm-Relative Helicity\n0–3 km (m²/s²)",SRH3),("Significant Hail Parameter",SHIP),("Equilibrium Level (hPa)",EL)]
+    ("Storm-Relative Helicity\n0–3 km (m²/s²)",SRH3),("Significant Hail Parameter",SHIP),("Equilibrium Level (hPa)",EL)]             globals()['LAST_CARDS']=cards    
     cw,ch,top=0.30,0.0335,0.522
     for n,(lab,val) in enumerate(cards):
         r,c=divmod(n,3); x=0.03+c*(cw+0.02); y=top-r*(ch+0.0055)-ch
@@ -990,7 +990,7 @@ def publish_web(out, cfg, setup=False):
     page=page.replace('<script src="archive.js"></script>',f'<script src="archive.js?v={ver}"></script>')   # browsers always fetch the newest list
     page=page.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache"><meta http-equiv="Pragma" content="no-cache">',1)
     texts={'index.html':page,'archive.js':archjs,
-           '.nojekyll':'','README.md':README_TXT.replace('{link}',link)}
+           '.nojekyll':'','README.md':README_TXT.replace('{link}',link)}             texts.update(globals().get('EXTRA_TEXTS',lambda *a:{})(out,gh,branch))
     # current site contents
     ref=gh.call('GET',gh.rp(f'/git/ref/heads/{branch}'))
     head=ref['object']['sha']; tree_sha=gh.call('GET',gh.rp(f'/git/commits/{head}'))['tree']['sha']
@@ -1145,7 +1145,8 @@ def main():
         link=publish_web(args.out,cfg)
         if link: print(f"Web link: {link}")
     except Exception as e: print(f"  web upload failed: {e}")
-
+     try: import rsrw_delhi; rsrw_delhi.install(globals())
+     except Exception as _e: print('Delhi tab not installed:', _e)
 if __name__=='__main__':
     try: main()
     except SystemExit: raise
