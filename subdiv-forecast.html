@@ -28,20 +28,22 @@
   button:focus-visible,select:focus-visible{outline:3px solid #f5a623;outline-offset:2px}
   .win{font-weight:600;margin:0 0 10px;font-size:.9rem}
   .grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
-  @media (min-width:1000px){.grid{grid-template-columns:minmax(0,46%) minmax(0,1fr);gap:18px}}
-  @media (min-width:1500px){.grid{grid-template-columns:minmax(0,600px) minmax(0,1fr)}}
+  @media (min-width:1000px){.grid{grid-template-columns:minmax(0,38%) minmax(0,1fr);gap:16px}}
+  @media (min-width:1500px){.grid{grid-template-columns:minmax(0,540px) minmax(0,1fr)}}
   .stage{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px;align-self:start}
   canvas{display:block;width:100%;height:auto}
   .maptitle{font-weight:600;font-size:.95rem;margin:0 0 6px}
   #status{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.88);color:var(--mute);text-align:center;padding:20px;border-radius:8px}
   #status.hide{display:none}
-  .tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:auto;max-height:88vh}
-  table.t{border-collapse:separate;border-spacing:0;font-size:.98rem;min-width:100%}
-  .t th,.t td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:7px 12px;text-align:center;white-space:nowrap;font-variant-numeric:tabular-nums}
-  .t thead th{position:sticky;top:0;background:#14202b;color:#fff;z-index:2;font-weight:600;line-height:1.2}
+  .tblwrap{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+  table.t{border-collapse:separate;border-spacing:0;font-size:.88rem;width:100%;table-layout:fixed;line-height:1.2}
+  .t col.c0{width:27%}
+  .t th,.t td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:3px 4px;text-align:center;font-variant-numeric:tabular-nums}
+  .t thead th{background:#14202b;color:#fff;font-weight:600;line-height:1.15;font-size:.8rem;padding:5px 3px}
   .t thead th small{display:block;font-weight:400;opacity:.75;font-size:.78rem}
-  .t th.sd,.t td.sd{position:sticky;left:0;text-align:left;background:var(--panel);z-index:1;font-weight:600;max-width:300px;overflow:hidden;text-overflow:ellipsis}
-  .t thead th.sd{z-index:3;background:#14202b}
+  .t th.sd,.t td.sd{text-align:left;background:var(--panel);font-weight:600;white-space:normal;overflow-wrap:break-word;padding-left:6px}
+  .t tr.r0 td{border-top:3px solid #14202b}
+  .t thead th.sd{background:#14202b}
   .t td.mme{font-weight:800;border-right:2px solid #14202b}
   .t th.mme{border-right:2px solid #14202b;background:#0b5cad}
   .t td.na{color:#9aa6b2;background:#f7f8fa}
@@ -60,7 +62,7 @@
   #tip tr.m td{border-top:1px solid #fff5;padding-top:4px;font-weight:700}
   [hidden]{display:none!important}
   .sh{display:none}@media (max-width:700px){.lg{display:none}.sh{display:inline}}
-  @media (max-width:700px){.wrap{padding:8px}.vtabs button{padding:7px 11px;font-size:.88rem}.icsub{font-size:.78rem}.t{font-size:.84rem}.t th,.t td{padding:5px 8px}.tblwrap{max-height:none}}
+  @media (max-width:700px){.wrap{padding:8px}.vtabs button{padding:7px 11px;font-size:.88rem}.icsub{font-size:.78rem}table.t{font-size:.72rem}.t thead th{font-size:.64rem;padding:4px 1px}.t th,.t td{padding:3px 2px}.t col.c0{width:25%}.t td.sd{padding-left:3px;overflow-wrap:anywhere}}
 </style>
 </head>
 <body>
@@ -251,11 +253,12 @@ function render(){
   g('win').textContent=d.label+(d.sub?' (to '+d.sub+')':'')+' · '+d.win;
   g('maptitle').textContent='MME (mean of the models’ '+k.agg+' values), '+k.unit;
   g('legend').innerHTML=bins.map(b=>'<span><i style="background:'+b.color+'"></i>'+b.label+'</span>').join('')+'<span><i style="background:#e3e7eb"></i>No data</span>';
-  let h='<thead><tr><th class="sd">Subdivision</th><th class="mme">MME<small>mean ('+k.unit+')</small></th>'
-       +cur.cols.map(m=>'<th>'+(MODELS[m]?MODELS[m].name:m)+'</th>').join('')+'</tr></thead><tbody>', reg=null;
+  let h='<colgroup><col class="c0">'+'<col>'.repeat(cur.cols.length+1)+'</colgroup>'
+       +'<thead><tr><th class="sd">Subdivision</th><th class="mme">MME<small>mean ('+k.unit+')</small></th>'
+       +cur.cols.map(m=>'<th>'+(MODELS[m]?MODELS[m].name:m).replace(' ','<br>')+'</th>').join('')+'</tr></thead><tbody>', reg=null;
   SDN.forEach((n,i)=>{
-    const r=Math.floor((SDC[i]||0)/100); if(r!==reg){ reg=r; h+='<tr class="reg"><td colspan="'+(cur.cols.length+2)+'">'+(REGIONS[r]||'')+'</td></tr>'; }
-    h+='<tr data-sd="'+i+'"'+(i===hoverSD?' class="hl"':'')+'><td class="sd" title="'+n+'">'+n+'</td>'+cell(cur.mme[i],bins,'mme');
+    const r=Math.floor((SDC[i]||0)/100), first=reg!==null&&r!==reg; reg=r;
+    h+='<tr data-sd="'+i+'" class="'+(first?'r0':'')+(i===hoverSD?' hl':'')+'"><td class="sd" title="'+n+'">'+n+'</td>'+cell(cur.mme[i],bins,'mme');
     for(const m of cur.cols){ const v=cur.data[m][i][dayIdx]; h+=cell(v,bins,''); }
     h+='</tr>';
   });
@@ -308,7 +311,6 @@ g('png').onclick=()=>{ const a=document.createElement('a'); a.href=cv.toDataURL(
 let embedded=false; try{ embedded=!!window.frameElement; }catch(e){}
 if(embedded) document.body.classList.add('embedded');
 function fitFrame(){ if(!embedded) return; const f=window.frameElement;
-  if(innerWidth>700){ if(f.dataset.fit){ f.style.height=f.dataset.h0; f.style.minHeight=f.dataset.m0; delete f.dataset.fit; } return; }
   if(!f.dataset.fit){ f.dataset.fit='1'; f.dataset.h0=f.style.height; f.dataset.m0=f.style.minHeight; }
   const h=document.documentElement.scrollHeight; if(!(Math.abs(parseFloat(f.style.height)-h)<=2)){ f.style.minHeight='0'; f.style.height=h+'px'; } }
 if(embedded&&window.ResizeObserver) new ResizeObserver(fitFrame).observe(document.body);
