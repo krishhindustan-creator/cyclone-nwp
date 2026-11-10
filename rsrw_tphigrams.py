@@ -67,6 +67,8 @@ STATIONS = {  # index -> name (from the RS/RW list page); unknown indices fall b
 }
 
 LEARNED_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stations_learned.json')
+README_TXT = "# IMD RS/RW T-phi grams\n\n**T-phi grams and 39 thermodynamic indices for every IMD radiosonde/radiowind (RS/RW) station that reported, updated automatically.**\n\nLive page: {link}\nCompanion site (cyclone, district and subdivisional guidance): https://krishhindustan-creator.github.io/cyclone-nwp/\n\n> Guidance products prepared at RWFC New Delhi, India Meteorological Department. Not official IMD forecasts.\n\n## What the page gives\n\n- A T-phi gram for each ascent: temperature and dew-point profiles, the parcel path with CAPE shaded red and CIN blue, wind barbs and a hodograph.\n- An index sheet of 39 values per station, including surface-based, mixed-layer and most-unstable CAPE; CIN; LCL, LFC and EL; lifted and Showalter indices; K index; total totals; SWEAT; precipitable water; DCAPE; bulk shear and storm-relative helicity; SCP and STP; wet-bulb zero and freezing levels.\n- Quality flags: values outside physical limits (e.g. CAPE above 7000 J/kg, precipitable water outside 2-90 mm) are flagged on the sheet, not hidden.\n- Two views: all stations for one ascent, or one station for all dates; filter by station name.\n\n## Data and updates\n\n- Source: IMD CLIMS RS/RW data (File-3 standard summary, or File-4 when File-3 is missing). About 45 stations report at a typical 00 UTC ascent.\n- Updated at 07:30 and 09:00 IST (00 UTC ascents) and 19:30 and 21:00 IST (12 UTC); the later run adds stations that report late.\n- Rolling archive of all ascents in `charts/YYYYMMDD_HHZ/`.\n\n## How it is made\n\nThis repository holds only the published page (`index.html`, `archive.js`, `charts/`). The page is rebuilt by `rsrw_tphigrams.py`, which runs on a schedule in GitHub Actions in the [cyclone-nwp](https://github.com/krishhindustan-creator/cyclone-nwp) repository (workflow `.github/workflows/tphi.yml`). CLIMS access uses institutional credentials held as an encrypted secret; only derived charts are published.\n\nAll code was written by a generative AI assistant (Claude, Anthropic) from requirements set, tested and validated by the forecaster. The system is described in: Mishra, K., Kumar, V. *Building zero-cost operational weather decision support with a generative AI coding assistant: an Indian case study.* Manuscript in preparation.\n\n## Licence and contact\n\nCode: [MIT License](LICENSE). RS/RW data remain under IMD's data policy.\n\nKrishna Mishra, Scientist D, Regional Weather Forecasting Centre, New Delhi, India Meteorological Department - krishhindustan@gmail.com - ORCID 0000-0003-3028-7383\n"
+
 def clean_name(name):
     """Station name in capitals, or None if it does not look like a place name (HTML leftovers, numbers ...)."""
     name=html.unescape(name or '')
@@ -988,7 +990,7 @@ def publish_web(out, cfg, setup=False):
     page=page.replace('<script src="archive.js"></script>',f'<script src="archive.js?v={ver}"></script>')   # browsers always fetch the newest list
     page=page.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache"><meta http-equiv="Pragma" content="no-cache">',1)
     texts={'index.html':page,'archive.js':archjs,
-           '.nojekyll':'','README.md':f"# IMD RS/RW T-phi grams\n\nLive page: {link}\n\nUpdated automatically by rsrw_tphigrams.py.\n"}
+           '.nojekyll':'','README.md':README_TXT.replace('{link}',link)}
     # current site contents
     ref=gh.call('GET',gh.rp(f'/git/ref/heads/{branch}'))
     head=ref['object']['sha']; tree_sha=gh.call('GET',gh.rp(f'/git/commits/{head}'))['tree']['sha']
@@ -996,7 +998,7 @@ def publish_web(out, cfg, setup=False):
     import hashlib
     def gitsha(b): return hashlib.sha1(b'blob %d\0'%len(b)+b).hexdigest()
     entries=[]; new=0
-    gone=[p for p in have if p not in want and p not in texts and p not in KEEP]
+    gone=[p for p in have if p not in want and p not in texts and p not in KEEP and p not in ('LICENSE',)]
     order=list(want.items())+[(k,None) for k in texts if k!='index.html']+[('index.html',None)]   # page last
     for path,src in order:
         b=open(src,'rb').read() if src else texts[path].encode('utf-8')
