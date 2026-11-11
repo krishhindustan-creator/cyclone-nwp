@@ -992,7 +992,7 @@ def publish_web(out, cfg, setup=False):
     page=page.replace('<meta charset="utf-8">','<meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache"><meta http-equiv="Pragma" content="no-cache">',1)
     texts={'index.html':page,'archive.js':archjs,
            '.nojekyll':'','README.md':README_TXT.replace('{link}',link)}
-           texts.update(globals().get('EXTRA_TEXTS',lambda *a:{})(out,gh,branch))
+    texts.update(globals().get('EXTRA_TEXTS',lambda *a:{})(out,gh,branch))
     # current site contents
     ref=gh.call('GET',gh.rp(f'/git/ref/heads/{branch}'))
     head=ref['object']['sha']; tree_sha=gh.call('GET',gh.rp(f'/git/commits/{head}'))['tree']['sha']
