@@ -7,6 +7,9 @@ on:
     - cron: "0 14 * * *"     # 19:30 IST
     - cron: "30 15 * * *"    # 21:00 IST (late-uploaded stations)
   workflow_dispatch:
+    inputs:
+      backfill_days: {description: "Fill in the last N days (0 = normal run, max 9)", required: false, default: "0"}
+      only:          {description: "Only these station indices, e.g. 42182 for New Delhi (empty = all stations)", required: false, default: ""}
 
 permissions:
   contents: read
@@ -29,8 +32,10 @@ jobs:
         env:
           RSRW_CONFIG: ${{ secrets.RSRW_CONFIG }}   # the whole content of rsrw_config.json (CLIMS login + GitHub token)
           RSRW_KEEP_REMOTE: "1"                     # keep the charts already on the web page (this computer starts empty)
+          RSRW_BACKFILL_DAYS: ${{ github.event.inputs.backfill_days }}   # 'Run workflow' input (empty on scheduled runs)
+          RSRW_ONLY: ${{ github.event.inputs.only }}                     # 'Run workflow' input (empty on scheduled runs)
           TZ: Asia/Kolkata                          # times on the page in IST
         run: |
-          mkdir -p tphi && cp rsrw_tphigrams.py tphi/ && cd tphi
+          mkdir -p tphi && cp rsrw_tphigrams.py rsrw_delhi.py tphi/ && cd tphi
           printf '%s' "$RSRW_CONFIG" > rsrw_config.json
           python rsrw_tphigrams.py --auto
