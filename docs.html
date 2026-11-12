@@ -44,7 +44,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <ol>
   <li><a href="#overview">The pages and tabs</a></li>
   <li><a href="#conventions">Times, runs and categories</a></li>
-  <li><a href="#tphi">T-phi grams (IMD RS/RW data)</a></li>
+  <li><a href="#tphi">T-phi grams and 7-day station indices (IMD RS/RW data)</a></li>
   <li><a href="#mme">IMD MME: cyclone tracks of 7 models</a></li>
   <li><a href="#ens">ECMWF ensemble cyclone tracks</a> (both with an Arabian Sea / Bay of Bengal selector)</li>
   <li><a href="#adeck">A-Deck: JTWC model tracks</a></li>
@@ -61,6 +61,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <div class="tbl"><table>
 <tr><th>Tab</th><th>What it gives</th><th>Link</th></tr>
 <tr><td>T-phi grams</td><td>T-phi gram and 39 thermodynamic indices for every IMD RS/RW station that reported</td><td><a href="https://krishhindustan-creator.github.io/rsrw-tphigrams" target="_top">rsrw-tphigrams</a></td></tr>
+<tr><td>Station Indices (7 days)</td><td>The 39 thermodynamic indices of any RS/RW station as 7-day time series (00 and 12 UTC as two lines); pick the station from a list</td><td><a href="https://krishhindustan-creator.github.io/rsrw-tphigrams/#delhi" target="_top">rsrw-tphigrams#delhi</a></td></tr>
 <tr><td>ECMWF ENS</td><td>Cyclone tracks of the 51-member ECMWF ensemble: spaghetti, strike probability, MSW and MSLP plumes, landfall summary, run comparison. Basin selector: Arabian Sea or Bay of Bengal</td><td><a href="index.html#ens" target="_top">#ens</a></td></tr>
 <tr><td>IMD MME</td><td>Cyclone track, MSW and MSLP of seven models and their mean (MME), MME table and landfall table. Basin selector: Arabian Sea or Bay of Bengal</td><td><a href="index.html#mme" target="_top">#mme</a></td></tr>
 <tr><td>A-Deck</td><td>Model tracks collected by JTWC for a numbered system</td><td><a href="index.html#adeck" target="_top">#adeck</a></td></tr>
@@ -94,7 +95,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 </section>
 
 <!-- ======================================================= -->
-<section id="tphi"><h2>3. T-phi grams (IMD RS/RW data) <a class="top" href="#top">↑ top</a></h2>
+<section id="tphi"><h2>3. T-phi grams and station indices (IMD RS/RW data) <a class="top" href="#top">↑ top</a></h2>
 <h3>Data</h3>
 <ul>
   <li>Source: IMD CLIMS RS/RW data for all stations. For each ascent the File-3 standard summary (<code>_sum.txt</code>) is read, or the File-4 zip when File-3 is missing.</li>
@@ -106,6 +107,14 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
   <li>T-phi gram with the parcel path; positive area (CAPE) shaded red and negative area (CIN) blue; wind barbs.</li>
   <li>An index sheet of 39 values per station, including: surface-based, mixed-layer and most-unstable CAPE; CIN; LCL, LFC and EL; lifted index and Showalter index; K index; total totals; SWEAT; precipitable water; DCAPE and the corresponding maximum downdraft speed; bulk wind shear and storm-relative helicity; supercell composite (SCP) and significant tornado parameter (STP); wet-bulb zero height.</li>
   <li>Quality flags: values outside physical limits (e.g. CAPE above 7000 J/kg, precipitable water outside 2–90 mm, K index outside −40 to 60) are flagged on the sheet, not hidden. Check the ascent before using a flagged index.</li>
+</ul>
+<h3>Station Indices (7 days) tab</h3>
+<ul>
+  <li>Every value on the index sheet is also saved for each station and ascent. The tab draws them as one small chart per index for the last 7 days, grouped as convective energy, moisture, stability indices, heights and levels, boundary layer and inversion, and shear and severe weather.</li>
+  <li>00 UTC and 12 UTC are drawn as two separate lines, so the diurnal difference does not hide the trend. A gap of more than 30 hours breaks the line.</li>
+  <li>A red ring marks an ascent that carried a data-check flag on its T-phi gram; check that chart before using the value.</li>
+  <li>Choose the station from the list (or step with ◀ ▶). The page opens on New Delhi and then remembers the last station. A link can open one station directly, e.g. <code>#delhi-42182</code> (New Delhi) or <code>#delhi-42809</code> (Kolkata).</li>
+  <li>The last 10 days are kept for every station; the 7-day window ends on the newest ascent of any station.</li>
 </ul>
 <h3>Updates and archive</h3>
 <p>07:30 and 09:00 IST for 00 UTC ascents; 19:30 and 21:00 IST for 12 UTC. The later run adds stations that report late. A rolling archive keeps all ascents; view by ascent or by station and filter by name.</p>
@@ -301,6 +310,7 @@ Prepared by Krishna Mishra, Scientist D, RWFC New Delhi, India Meteorological De
 <div class="tbl"><table>
 <tr><th>Product</th><th>Updated (IST)</th><th>Archive</th></tr>
 <tr><td>T-phi grams</td><td>07:30 · 09:00 · 19:30 · 21:00</td><td>Rolling, all ascents</td></tr>
+<tr><td>Station Indices (7 days)</td><td>With the T-phi grams</td><td>10 days per station</td></tr>
 <tr><td>IMD MME and A-Deck (both basins)</td><td>10:30 · 13:30 · 14:30 · 22:30 · 01:30 · 02:30</td><td>15 days</td></tr>
 <tr><td>ECMWF ENS cyclone tracks (both basins)</td><td>~13:30 (00 UTC run) · ~01:30 (12 UTC run)</td><td>15 days</td></tr>
 <tr><td>MME District Rainfall</td><td>Every 30 min, 08:40–16:10 and 20:40–04:10, as models arrive</td><td>7 days (14 runs)</td></tr>
