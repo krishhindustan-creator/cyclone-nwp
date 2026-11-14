@@ -5771,3 +5771,807 @@ date,observed,forecast_value,lead,run,ic,forecast,threshold_mm,hits,misses,false
 2026-11-12,gridded-mean,mean,Day 3,12 UTC run,2026-11-09T12:00,NOAA AIGFS,64.5,0,0,0,742
 2026-11-12,gridded-mean,mean,Day 3,12 UTC run,2026-11-09T12:00,NOAA AIGFS,115.6,0,0,0,742
 2026-11-12,gridded-mean,mean,Day 3,12 UTC run,2026-11-09T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,64.5,0,0,2,740
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,115.6,0,0,1,741
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,64.5,0,0,3,739
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,115.6,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,64.5,0,0,5,737
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,64.5,0,0,4,738
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,115.6,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,115.6,0,0,1,741
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-max,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,64.5,0,0,2,740
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,115.6,0,0,1,741
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,64.5,0,0,3,739
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,115.6,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,64.5,0,0,5,737
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,64.5,0,0,4,738
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,115.6,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,64.5,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,115.6,0,0,1,741
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,max,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,00 UTC run,2026-11-13T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 1,12 UTC run,2026-11-12T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,00 UTC run,2026-11-12T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 2,12 UTC run,2026-11-11T12:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-G,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NCUM-R,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,00 UTC run,2026-11-11T00:00,NOAA AIGFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,CMC GDPS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,DWD ICON,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF AIFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,ECMWF IFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,IMD GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME mean,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,MME median,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,Meteo-France ARPEGE,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NCEP GFS,204.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,64.5,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,115.6,0,0,0,742
+2026-11-13,gridded-mean,mean,Day 3,12 UTC run,2026-11-10T12:00,NOAA AIGFS,204.5,0,0,0,742
