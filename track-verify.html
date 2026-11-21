@@ -1,0 +1,59 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Cache-Control" content="no-cache">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>Cyclone track verification</title>
+<style>
+:root{--bg:#f4f6f8;--panel:#fff;--ink:#14202b;--mute:#586573;--line:#d3dae1;--accent:#0b5cad;--good:#d8f0dc;--fair:#fff1c7;--poor:#fbd9d3}
+@media (prefers-color-scheme:dark){:root{--bg:#0f151b;--panel:#18212a;--ink:#e4ebf1;--mute:#93a4b3;--line:#2b3946;--accent:#7fb1ea;--good:#1f4a2a;--fair:#4a3f17;--poor:#4d2520}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px "Segoe UI",system-ui,sans-serif}
+main{max-width:1400px;margin:0 auto;padding:16px}h2{font-size:17px;margin:22px 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:12px}
+select,label{font:inherit;color:var(--ink)}select{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.mut{color:var(--mute);font-size:12px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px}.card b{display:block;font-size:12px;color:var(--mute);font-weight:600}
+.card span{font-size:16px;font-weight:700}.wrap{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap}
+th{background:var(--accent);color:#fff}td:first-child{text-align:left;font-weight:600}
+.g{background:var(--good)}.f{background:var(--fair)}.p{background:var(--poor)}.sm{display:block;font-size:11px;color:var(--mute);white-space:normal}
+.figs{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:12px}.figs a{display:block;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px}
+.figs img{width:100%;display:block;background:#fff;border-radius:4px}.figs b{display:block;margin:6px 2px 2px;color:var(--ink)}
+.note{background:var(--panel);border-left:3px solid var(--accent);border-radius:4px;padding:8px 12px;margin-top:18px;font-size:12.5px;color:var(--mute);line-height:1.5}
+</style></head><body><main>
+<div class="bar"><b>Cyclone track verification</b><select id="storm"></select><label><input type="checkbox" id="all"> all models</label><span class="mut" id="upd"></span></div>
+<div id="out"><p class="mut">Loading…</p></div>
+<div class="note">
+<b>Observed</b>: JTWC operational best track (b-deck, via UCAR RAL); winds are 1-minute sustained and may differ from IMD's RSMC best track, which is finalised later.
+<b>Track error</b>: distance between forecast and observed centre at the same time. <b>Landfall</b>: first crossing of the coastline (Natural Earth 10 m);
+time error + = forecast later than observed; scored only for runs that started over the sea before the observed landfall. Colours: green &lt; 50 km / 6 h, yellow &lt; 100 km / 12 h, red beyond.
+Verification is recomputed at every update; forecast tracks are kept permanently, so storms remain verifiable after their runs leave the 15-day archive.
+</div></main>
+<script>
+const g=id=>document.getElementById(id), MAIN=["IMD MME","ECMWF ENS mean","ECMWF HRES"];
+let S=null;
+const cls=(v,a,b)=>v==null?'':(Math.abs(v)<a?'g':Math.abs(v)<b?'f':'p');
+function draw(){
+  const st=S.storms.find(s=>s.id===g('storm').value); if(!st) return;
+  const all=g('all').checked, models=(all?S.models:MAIN).filter(m=>st.stats[m]||st.runs.some(r=>r.models[m]));
+  const lf=st.obs_landfall, n=st.runs.length;
+  let h=`<div class="cards"><div class="card"><b>Observed landfall</b><span>${lf?lf.t:'—'}</span><span class="sm">${lf?lf.place+' ('+lf.lat+'°N '+lf.lon+'°E)':'no landfall in best track'}</span></div>
+  <div class="card"><b>Observed peak (JTWC, 1-min)</b><span>${st.obs_peak!=null?st.obs_peak+' kt':'—'}</span></div>
+  <div class="card"><b>Runs verified</b><span>${n}</span><span class="sm">${st.runs[0].label} – ${st.runs[n-1].label}</span></div></div>`;
+  h+=`<h2>Landfall: distance and time error of each run</h2><div class="wrap"><table><tr><th>Run</th>${models.map(m=>`<th>${m}</th>`).join('')}</tr>`;
+  st.runs.forEach(r=>{h+=`<tr><td>${r.label}</td>`+models.map(m=>{const x=(r.models[m]||{}).lf;
+     if(!x||x.dist_km==null) return '<td class="mut">–</td>';
+     const c=[cls(x.dist_km,50,100),cls(x.dt_h,6,12)].includes('p')?'p':[cls(x.dist_km,50,100),cls(x.dt_h,6,12)].includes('f')?'f':'g';
+     return `<td class="${c}">${x.dist_km} km · ${x.dt_h>0?'+':''}${x.dt_h} h<span class="sm">${x.t}, ${x.place}</span></td>`}).join('')+'</tr>'});
+  h+=`<tr><td>Mean (absolute)</td>`+models.map(m=>{const s=st.stats[m]; return s&&s.lf_n?`<td><b>${s.lf_dist} km · ${s.lf_dt} h</b><span class="sm">${s.lf_n} run${s.lf_n>1?'s':''}</span></td>`:'<td class="mut">–</td>'}).join('')+'</tr></table></div>';
+  const L=S.leads.filter(l=>models.some(m=>st.stats[m]&&st.stats[m].dpe[l]!=null));
+  h+=`<h2>Mean track error by lead time (km; number of runs below)</h2><div class="wrap"><table><tr><th>Model</th>${L.map(l=>`<th>+${l} h</th>`).join('')}</tr>`;
+  models.forEach(m=>{const s=st.stats[m]; if(!s) return; h+=`<tr><td>${m}</td>`+L.map(l=>s.dpe[l]!=null?`<td class="${cls(s.dpe[l],50,100)}">${s.dpe[l]}<span class="sm">n = ${s.n[l]}</span></td>`:'<td class="mut">–</td>').join('')+'</tr>'});
+  h+='</table></div>';
+  h+=`<h2>Mean intensity error (forecast − observed MSW, kt)</h2><div class="wrap"><table><tr><th>Model</th>${L.map(l=>`<th>+${l} h</th>`).join('')}</tr>`;
+  models.forEach(m=>{const s=st.stats[m]; if(!s) return; h+=`<tr><td>${m}</td>`+L.map(l=>s.dv[l]!=null?`<td class="${cls(s.dv[l],10,25)}">${s.dv[l]>0?'+':''}${s.dv[l]}</td>`:'<td class="mut">–</td>').join('')+'</tr>'});
+  h+='</table></div><h2>Figures</h2><div class="figs">'+st.figures.map(f=>`<a href="${f.f}?t=${Date.now()}" target="_blank"><img loading="lazy" src="${f.f}?t=${Date.now()}" alt="${f.t}"><b>${f.t}</b></a>`).join('')+'</div>';
+  g('out').innerHTML=h;
+}
+fetch('trackverif/summary.json?t='+Date.now()).then(r=>r.json()).then(s=>{S=s;
+  if(!s.storms.length){g('out').innerHTML='<p class="mut">No storm with both forecasts and a best track yet.</p>';return}
+  g('storm').innerHTML=s.storms.map(x=>`<option value="${x.id}">${x.title}</option>`).join('');
+  g('upd').textContent='updated '+s.updated; g('storm').onchange=draw; g('all').onchange=draw; draw();
+}).catch(()=>g('out').innerHTML='<p class="mut">Verification not available yet — it appears after the next update.</p>');
+</script></body></html>

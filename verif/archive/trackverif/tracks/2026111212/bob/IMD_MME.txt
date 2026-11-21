@@ -1,0 +1,2 @@
+#MME-Mean of 2 TIGGE Models (ECMWF,NCUM-R)
+2026111218 6.95  86.60  24.5  1009.5  Ocean
