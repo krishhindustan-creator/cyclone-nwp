@@ -1,0 +1,3 @@
+# ECMWF ENS mean, IC 20261126 00Z, positions where >= 10 members track the system
+1 2026120300 6.5 82.9 24 1008
+1 2026120406 6.2 80.3 25 1008
